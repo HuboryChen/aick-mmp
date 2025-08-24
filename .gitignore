@@ -1,1 +1,40 @@
+# Dependencies
 node_modules
+
+# IDE directories
+.idea/
+.vscode/
+
+# Backend compiled files
+backend/target/
+backend/build/
+backend/out/
+backend/*.jar
+backend/*.war
+backend/*.ear
+
+# Frontend compiled files
+frontend/build/
+frontend/dist/
+frontend/.next/
+frontend/out/
+
+# Logs
+*.log
+logs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
