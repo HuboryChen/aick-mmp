@@ -1,0 +1,123 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+  compression:
+    enabled: true
+  http2:
+    enabled: true
+
+spring:
+  application:
+    name: mmp-backend
+
+  datasource:
+    url: jdbc:mysql://${SPRING_DATASOURCE_URL:mysql:3306/aick_mmp}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: ${SPRING_DATASOURCE_USERNAME:aickuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:aickpassword}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        format_sql: true
+    open-in-view: false
+
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:redis}
+      port: ${SPRING_REDIS_PORT:6379}
+      password: ${SPRING_REDIS_PASSWORD:}
+      timeout: 2000ms
+      client-config:
+        lettuce:
+          pool:
+            max-active: 8
+            max-idle: 8
+            min-idle: 2
+            max-wait: 5000ms
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    consumer:
+      group-id: mmp-video-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.aick.mmp.dto
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+    max-age: 3600
+
+# WebRTC Configuration
+webrtc:
+  config:
+    janus:
+      server-url: ${JANUS_SERVER_URL:http://janus:8088}
+      timeout: 5000
+    kurento:
+      server-url: ${KURENTO_SERVER_URL:wss://kurento:8443/kurento}
+    ice-servers:
+      - urls: stun:stun.l.google.com:19302
+      - urls: stun:stun1.l.google.com:19302
+
+# Video Stream Configuration
+video:
+  max-resolution: 1920x1080
+  default-resolution: 1280x720
+  supported-resolutions:
+    - 640x480
+    - 1280x720
+    - 1920x1080
+  frame-rate: 25
+  bitrate:
+    min: 512
+    max: 4096
+    default: 2048
+
+# Security Configuration
+security:
+  jwt:
+    secret: ${JWT_SECRET:mmp-secret-key-change-in-production-environment}
+    expiration: 86400000
+    refresh-expiration: 604800000
+  allowed-origins: ${SECURITY_ALLOWED_ORIGINS:*}
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.aick.mmp: DEBUG
+    org.springframework.web: INFO
+    org.hibernate: INFO
+    org.kurento: INFO
+    io.jsonwebtoken: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ${LOG_FILE_PATH:/var/log/mmp/application.log}
+
+# Edge Node Configuration
+edge-node:
+  buffer-size: 10
+  reconnect-interval: 5000
+  max-reconnect-attempts: 10
+  local-storage-path: ${EDGE_STORAGE_PATH:/var/local/mmp/edge-storage}

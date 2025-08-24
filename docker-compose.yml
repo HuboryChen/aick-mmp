@@ -1,0 +1,271 @@
+version: '3.8'
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: aick-mmp-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: aick_mmp
+      MYSQL_USER: aickuser
+      MYSQL_PASSWORD: aickpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - aick-network
+
+  # Redis缓存
+  redis:
+    image: redis:6.2-alpine
+    container_name: aick-mmp-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - aick-network
+
+  # Zookeeper for Kafka
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: aick-mmp-zookeeper
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - aick-network
+
+  # Kafka Message Queue
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: aick-mmp-kafka
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - aick-network
+
+  # Janus WebRTC Gateway
+  janus:
+    image: canyan/janus-gateway:latest
+    container_name: aick-mmp-janus
+    restart: always
+    ports:
+      - "8088:8088"
+      - "8188:8188"
+      - "8089:8089"
+      - "10000-10200:10000-10200/udp"
+    volumes:
+      - janus-data:/var/lib/janus
+      - ./janus/janus.cfg:/usr/local/etc/janus/janus.jcfg
+    environment:
+      - JANUS_LOG_LEVEL=5
+    networks:
+      - aick-network
+
+  # 后端API服务
+  backend-1:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aick-mmp-backend-1
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+      - kafka
+      - janus
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: aickuser
+      SPRING_DATASOURCE_PASSWORD: aickpassword
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JANUS_SERVER_URL: http://janus:8088
+      SPRING_PROFILES_ACTIVE: prod
+      NODE_ID: backend-1
+      ZONE: zone-a
+    volumes:
+      - backend-1-data:/app/data
+      - ./backend/logs/backend-1:/app/logs
+    networks:
+      - aick-network
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+
+  backend-2:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aick-mmp-backend-2
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+      - kafka
+      - janus
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: aickuser
+      SPRING_DATASOURCE_PASSWORD: aickpassword
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      JANUS_SERVER_URL: http://janus:8088
+      SPRING_PROFILES_ACTIVE: prod
+      NODE_ID: backend-2
+      ZONE: zone-b
+    volumes:
+      - backend-2-data:/app/data
+      - ./backend/logs/backend-2:/app/logs
+    networks:
+      - aick-network
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+
+  central-lb:
+    image: nginx:alpine
+    container_name: aick-mmp-central-lb
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/central-lb.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - backend-1
+      - backend-2
+    networks:
+      - aick-network
+
+  # 前端Web应用
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aick-mmp-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - central-lb
+    networks:
+      - aick-network
+
+  edge-node-1:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aick-mmp-edge-node-1
+    restart: always
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=edge
+      - SERVER_PORT=8080
+      - NODE_ID=node-1
+      - REGION=region-a
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=aick_mmp
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REGISTRY_SERVER=http://backend:8080/api/registry
+    volumes:
+      - edge-node-1-data:/app/data
+      - ./backend/logs/edge-1:/app/logs
+    depends_on:
+      - mysql
+      - redis
+      - kafka
+      - central-lb
+    networks:
+      - aick-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  edge-node-2:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aick-mmp-edge-node-2
+    restart: always
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=edge
+      - SERVER_PORT=8080
+      - NODE_ID=node-2
+      - REGION=region-a
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_NAME=aick_mmp
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REGISTRY_SERVER=http://backend:8080/api/registry
+    volumes:
+      - edge-node-2-data:/app/data
+      - ./backend/logs/edge-2:/app/logs
+    depends_on:
+      - mysql
+      - redis
+      - kafka
+      - central-lb
+    networks:
+      - aick-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+
+  edge-lb:
+    image: nginx:alpine
+    container_name: aick-mmp-edge-lb
+    restart: always
+    ports:
+      - "8083:80"
+    volumes:
+      - ./nginx/edge-lb.conf:/etc/nginx/nginx.conf
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - edge-node-1
+      - edge-node-2
+    networks:
+      - aick-network
+
+networks:
+  aick-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  janus-data:
+  backend-1-data:
+  backend-2-data:
+  edge-node-1-data:
+  edge-node-2-data:
