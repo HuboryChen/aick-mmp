@@ -1,0 +1,142 @@
+.App {
+  text-align: center;
+}
+
+.loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background: #f0f2f5;
+}
+
+.ant-layout-sider {
+  z-index: 1000;
+}
+
+.ant-layout-header {
+  z-index: 999;
+}
+
+/* 视频墙样式 */
+.video-grid {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  background: #000;
+  border-radius: 8px;
+}
+
+.video-grid.grid-1x1 {
+  grid-template-columns: 1fr;
+}
+
+.video-grid.grid-2x2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.video-grid.grid-3x3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.video-grid.grid-4x4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.video-window {
+  position: relative;
+  background: #1f1f1f;
+  border-radius: 4px;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+}
+
+.video-window.selected {
+  border: 2px solid #1890ff;
+}
+
+.video-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  font-size: 14px;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+  color: white;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+.video-controls {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: none;
+}
+
+.video-window:hover .video-controls {
+  display: block;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .ant-layout-header {
+    margin-left: 0 !important;
+  }
+  
+  .video-grid {
+    padding: 8px;
+    gap: 4px;
+  }
+  
+  .video-overlay {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+}
+
+/* 动画效果 */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
