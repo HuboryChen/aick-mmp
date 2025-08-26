@@ -11,7 +11,7 @@ import {
   BellOutlined,
   LogoutOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+import axiosInstance from './utils/axios';
 import Cookies from 'js-cookie';
 import Dashboard from './pages/Dashboard';
 import VideoWall from './pages/VideoWall';
@@ -43,9 +43,7 @@ const App = () => {
       if (token) {
         try {
           setLoading(true);
-          const response = await axios.get('/api/auth/me', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const response = await axiosInstance.get('/api/auth/me');
           setUserInfo(response.data);
         } catch (error) {
           message.error('Session expired, please login again');

@@ -52,15 +52,19 @@ graph TB
         ELB[边缘负载均衡器<br/>Nginx]
     end
 
-    subgraph "后端服务层 Backend Services"
+    subgraph "后端微服务层 Backend Microservices"
         subgraph "中央服务 Central Services"
-            Backend1[后端服务 1<br/>Spring Boot 2.7.18]
-            Backend2[后端服务 2<br/>Spring Boot 2.7.18]
+            Central1[aick-mmp-central<br/>Spring Boot 2.7.18]
+            Central2[aick-mmp-central<br/>Spring Boot 2.7.18]
         end
         
         subgraph "边缘节点 Edge Nodes"
-            EdgeNode1[边缘节点 1<br/>Region A]
-            EdgeNode2[边缘节点 2<br/>Region A]
+            Edge1[aick-mmp-edge<br/>Region A]
+            Edge2[aick-mmp-edge<br/>Region B]
+        end
+        
+        subgraph "共享组件 Shared Components"
+            Shared[aick-mmp-shared<br/>通用模型与工具]
         end
     end
 
@@ -88,19 +92,24 @@ graph TB
 
     %% 连接关系
     UI --> CLB
-    CLB --> Backend1
-    CLB --> Backend2
-    ELB --> EdgeNode1
-    ELB --> EdgeNode2
+    CLB --> Central1
+    CLB --> Central2
+    ELB --> Edge1
+    ELB --> Edge2
     
-    Backend1 --> MySQL
-    Backend1 --> Redis
-    Backend1 --> Kafka
-    Backend2 --> Janus
+    Central1 --> Shared
+    Central2 --> Shared
+    Edge1 --> Shared
+    Edge2 --> Shared
     
-    EdgeNode1 --> Camera1
-    EdgeNode2 --> Camera2
-    EdgeNode2 --> Camera3
+    Central1 --> MySQL
+    Central1 --> Redis
+    Central1 --> Kafka
+    Central2 --> Janus
+    
+    Edge1 --> Camera1
+    Edge2 --> Camera2
+    Edge2 --> Camera3
 ```
 
 ### 核心组件说明
@@ -109,8 +118,10 @@ graph TB
 |------|----------|--------|
 | **前端展示层** | 用户界面和交互逻辑 | React 18, Ant Design, WebRTC |
 | **API网关层** | 负载均衡和请求路由 | Nginx, Docker |
-| **业务服务层** | 核心业务逻辑处理 | Spring Boot 2.7.18, Spring Security |
-| **边缘计算层** | 本地视频预处理 | 边缘节点服务, 协议适配器 |
+| **中央服务模块** | 核心业务逻辑处理 | aick-mmp-central, Spring Boot 2.7.18 |
+| **边缘节点模块** | 本地视频预处理 | aick-mmp-edge, 协议适配器 |
+| **共享组件模块** | 通用模型和工具类 | aick-mmp-shared, 协议适配器 |
+| **依赖管理模块** | 统一依赖版本管理 | aick-mmp-parent, Maven 管理 |
 | **数据存储层** | 持久化和缓存 | MySQL 8.0, Redis 6.2 |
 | **消息队列层** | 异步消息处理 | Apache Kafka, Zookeeper |
 | **流媒体层** | 视频流处理 | Janus WebRTC Gateway |
@@ -199,9 +210,15 @@ cd aick-mmp
 #### 2. 后端构建
 
 ```bash
+# 进入后端目录
 cd backend
+
+# 构建所有模块
 mvn clean package -DskipTests
+
+# 或使用构建脚本
 cd ..
+./build-modular.sh all
 ```
 
 #### 3. 前端构建（可选，Docker部署时自动构建）
@@ -244,9 +261,12 @@ curl http://localhost:80
 # 启动基础服务（MySQL, Redis, Kafka）
 docker-compose up -d mysql redis kafka zookeeper janus
 
-# 启动后端服务
+# 启动中央服务
 cd backend
-mvn spring-boot:run
+mvn spring-boot:run -pl aick-mmp-central
+
+# 或启动边缘服务
+mvn spring-boot:run -pl aick-mmp-edge
 ```
 
 #### 前端开发环境
@@ -302,18 +322,33 @@ npm start
 
 ```
 aick-mmp/
-├── backend/                 # 后端服务
-│   ├── src/main/java/com/aick/mmp/
-│   │   ├── adapter/         # 协议适配器
-│   │   ├── config/          # 配置类
-│   │   ├── controller/      # 控制器
-│   │   ├── dto/             # 数据传输对象
-│   │   ├── model/           # 数据模型
-│   │   ├── repository/      # 数据访问层
-│   │   ├── service/         # 业务逻辑层
-│   │   └── util/            # 工具类
-│   ├── Dockerfile           # 后端容器配置
-│   └── pom.xml              # Maven配置
+├── backend/                 # 后端微服务模块
+│   ├── pom.xml              # 主模块聚合器
+│   ├── aick-mmp-parent/     # 父依赖管理模块
+│   │   └── pom.xml          # 统一依赖版本管理
+│   ├── aick-mmp-shared/     # 共享组件模块
+│   │   ├── src/main/java/com/aick/mmp/shared/
+│   │   │   ├── model/       # 共享数据模型
+│   │   │   ├── adapter/     # 协议适配器
+│   │   │   ├── dto/         # 共享DTO
+│   │   │   ├── config/      # 共享配置
+│   │   │   └── util/        # 工具类
+│   │   └── pom.xml
+│   ├── aick-mmp-central/    # 中央服务模块
+│   │   ├── src/main/java/com/aick/mmp/central/
+│   │   │   ├── controller/  # REST控制器
+│   │   │   ├── service/     # 业务逻辑
+│   │   │   ├── repository/  # 数据访问
+│   │   │   ├── config/      # 中央服务配置
+│   │   │   └── Application.java # 中央服务启动类
+│   │   └── pom.xml
+│   └── aick-mmp-edge/       # 边缘节点模块
+│       ├── src/main/java/com/aick/mmp/edge/
+│       │   ├── controller/  # 边缘API控制器
+│       │   ├── service/     # 边缘业务逻辑
+│       │   ├── config/      # 边缘节点配置
+│       │   └── EdgeApplication.java # 边缘服务启动类
+│       └── pom.xml
 ├── frontend/                # 前端应用
 │   ├── public/              # 静态资源
 │   ├── src/
@@ -329,8 +364,10 @@ aick-mmp/
 ├── janus/                   # Janus配置
 │   └── janus.cfg            # Janus服务配置
 ├── docker-compose.yml       # 容器编排配置
+├── docker-compose-modular.yml # 模块化部署配置
+├── build-modular.sh         # 模块化构建脚本
+├── Dockerfile               # 多阶段构建配置
 ├── ARCHITECTURE.md          # 架构设计文档
-├── IMPLEMENTATION_PLAN.md   # 实施计划
 └── README.md                # 项目说明文档
 ```
 

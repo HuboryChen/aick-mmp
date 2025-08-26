@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message, Row, Col } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import axiosInstance from '../utils/axios';
 import Cookies from 'js-cookie';
 import { useNavigate } from 'react-router-dom';
 
@@ -14,7 +14,7 @@ const Login = ({ setUserInfo }) => {
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const response = await axios.post('/api/auth/login', {
+      const response = await axiosInstance.post('/api/auth/login', {
         username: values.username,
         password: values.password
       });

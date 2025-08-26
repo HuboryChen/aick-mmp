@@ -1,0 +1,62 @@
+spring:
+  profiles:
+    active: edge
+  application:
+    name: aick-mmp-edge-node
+  
+# Edge node specific configuration
+edge:
+  nodeId: ${NODE_ID:edge-node-1}
+  region: ${REGION:default-region}
+  centralServerUrl: ${CENTRAL_SERVER_URL:http://localhost:8080}
+  heartbeatInterval: ${HEARTBEAT_INTERVAL:30}
+  maxConcurrentStreams: ${MAX_CONCURRENT_STREAMS:10}
+  registryServer: ${REGISTRY_SERVER:http://localhost:8080/api/registry}
+  
+  networkMonitoring:
+    intervalSeconds: ${NETWORK_MONITORING_INTERVAL:60}
+    cpuThreshold: ${CPU_THRESHOLD:80.0}
+    memoryThreshold: ${MEMORY_THRESHOLD:85.0}
+    bandwidthThreshold: ${BANDWIDTH_THRESHOLD:80.0}
+
+# Server configuration
+server:
+  port: ${SERVER_PORT:8081}
+  servlet:
+    context-path: /api
+
+# Minimal logging
+logging:
+  level:
+    com.aick.mmp.edge: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level [%logger{36}] - %msg%n"
+
+# Optional H2 database for local caching
+spring.datasource:
+  url: jdbc:h2:mem:edge_cache
+  driver-class-name: org.h2.Driver
+  username: sa
+  password: 
+  
+spring.jpa:
+  hibernate:
+    ddl-auto: create-drop
+  show-sql: false
+  database-platform: org.hibernate.dialect.H2Dialect
+
+# H2 Console (for development)
+spring.h2.console:
+  enabled: true
+  path: /h2-console
+
+# Management endpoints (minimal)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized

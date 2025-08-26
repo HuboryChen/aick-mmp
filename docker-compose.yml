@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   # MySQL数据库
   mysql:
@@ -78,12 +77,13 @@ services:
     networks:
       - aick-network
 
-  # 后端API服务
-  backend-1:
+  # Central Services
+  central-1:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: aick-mmp-backend-1
+      target: central-runtime
+    container_name: aick-mmp-central-1
     restart: always
     depends_on:
       - mysql
@@ -91,31 +91,38 @@ services:
       - kafka
       - janus
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_PROFILES_ACTIVE: central
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: aickuser
       SPRING_DATASOURCE_PASSWORD: aickpassword
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       JANUS_SERVER_URL: http://janus:8088
-      SPRING_PROFILES_ACTIVE: prod
-      NODE_ID: backend-1
-      ZONE: zone-a
+      JWT_SECRET: aick_mmp_super_secret_jwt_key_2024_central_server
     volumes:
-      - backend-1-data:/app/data
-      - ./backend/logs/backend-1:/app/logs
+      - central-1-data:/app/data
+      - ./backend/logs/central-1:/app/logs
     networks:
       - aick-network
     deploy:
       resources:
         limits:
-          cpus: '4'
-          memory: 8G
+          cpus: '1'
+          memory: 2G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
-  backend-2:
+  central-2:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: aick-mmp-backend-2
+      target: central-runtime
+    container_name: aick-mmp-central-2
     restart: always
     depends_on:
       - mysql
@@ -123,25 +130,25 @@ services:
       - kafka
       - janus
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_PROFILES_ACTIVE: central
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
       SPRING_DATASOURCE_USERNAME: aickuser
       SPRING_DATASOURCE_PASSWORD: aickpassword
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       JANUS_SERVER_URL: http://janus:8088
-      SPRING_PROFILES_ACTIVE: prod
-      NODE_ID: backend-2
-      ZONE: zone-b
+      JWT_SECRET: aick_mmp_super_secret_jwt_key_2024_central_server
     volumes:
-      - backend-2-data:/app/data
-      - ./backend/logs/backend-2:/app/logs
+      - central-2-data:/app/data
+      - ./backend/logs/central-2:/app/logs
     networks:
       - aick-network
     deploy:
       resources:
         limits:
-          cpus: '4'
-          memory: 8G
+          cpus: '1'
+          memory: 2G
 
   central-lb:
     image: nginx:alpine
@@ -153,8 +160,8 @@ services:
       - ./nginx/central-lb.conf:/etc/nginx/nginx.conf
       - ./nginx/conf.d:/etc/nginx/conf.d
     depends_on:
-      - backend-1
-      - backend-2
+      - central-1
+      - central-2
     networks:
       - aick-network
 
@@ -174,73 +181,73 @@ services:
 
   edge-node-1:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
+      target: edge-runtime
     container_name: aick-mmp-edge-node-1
     restart: always
     ports:
-      - "8081:8080"
+      - "8081:8081"
     environment:
-      - SPRING_PROFILES_ACTIVE=edge
-      - SERVER_PORT=8080
-      - NODE_ID=node-1
-      - REGION=region-a
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_NAME=aick_mmp
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REGISTRY_SERVER=http://backend:8080/api/registry
+      SPRING_PROFILES_ACTIVE: edge
+      NODE_ID: node-1
+      REGION: region-a
+      SERVER_PORT: 8081
+      CENTRAL_SERVER_URL: http://central-lb:80
+      REGISTRY_SERVER: http://central-lb:80/api/registry
+      HEARTBEAT_INTERVAL: 30
+      JWT_SECRET: aick_mmp_super_secret_jwt_key_2024_edge_node
     volumes:
       - edge-node-1-data:/app/data
       - ./backend/logs/edge-1:/app/logs
     depends_on:
-      - mysql
       - redis
-      - kafka
       - central-lb
     networks:
       - aick-network
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 4G
+          cpus: '0.5'
+          memory: 1G
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   edge-node-2:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
+      target: edge-runtime
     container_name: aick-mmp-edge-node-2
     restart: always
     ports:
-      - "8082:8080"
+      - "8082:8081"
     environment:
-      - SPRING_PROFILES_ACTIVE=edge
-      - SERVER_PORT=8080
-      - NODE_ID=node-2
-      - REGION=region-a
-      - DB_HOST=mysql
-      - DB_PORT=3306
-      - DB_NAME=aick_mmp
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REGISTRY_SERVER=http://backend:8080/api/registry
+      SPRING_PROFILES_ACTIVE: edge
+      NODE_ID: node-2
+      REGION: region-a
+      SERVER_PORT: 8081
+      CENTRAL_SERVER_URL: http://central-lb:80
+      REGISTRY_SERVER: http://central-lb:80/api/registry
+      HEARTBEAT_INTERVAL: 30
+      JWT_SECRET: aick_mmp_super_secret_jwt_key_2024_edge_node
     volumes:
       - edge-node-2-data:/app/data
       - ./backend/logs/edge-2:/app/logs
     depends_on:
-      - mysql
       - redis
-      - kafka
       - central-lb
     networks:
       - aick-network
     deploy:
       resources:
         limits:
-          cpus: '2'
-          memory: 4G
+          cpus: '0.5'
+          memory: 1G
 
   edge-lb:
     image: nginx:alpine
@@ -265,7 +272,7 @@ volumes:
   mysql-data:
   redis-data:
   janus-data:
-  backend-1-data:
-  backend-2-data:
+  central-1-data:
+  central-2-data:
   edge-node-1-data:
   edge-node-2-data:
