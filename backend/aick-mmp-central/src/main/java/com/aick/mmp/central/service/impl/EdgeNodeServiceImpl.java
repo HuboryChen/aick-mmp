@@ -1,5 +1,6 @@
 package com.aick.mmp.central.service.impl;
 
+import com.aick.mmp.central.converter.EdgeNodeConverter;
 import com.aick.mmp.central.dto.EdgeNodeDTO;
 import com.aick.mmp.central.dto.EdgeNodeStatusUpdateDTO;
 import com.aick.mmp.shared.exception.ServiceException;
@@ -37,6 +38,8 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private EdgeNodeConverter edgeNodeConverter;
 
     private final EdgeNodeRepository edgeNodeRepository;
     private final NetworkMonitorService networkMonitorService;
@@ -44,26 +47,26 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
     @Override
     public Page<EdgeNodeDTO> getAllEdgeNodes(Pageable pageable) {
         return edgeNodeRepository.findAll(pageable)
-                .map(this::convertToDTO);
+                .map(edgeNodeConverter::convertToDTO);
     }
 
     @Override
     public Page<EdgeNodeDTO> getEdgeNodesByLocation(String location, Pageable pageable) {
         return edgeNodeRepository.findByLocation(location, pageable)
-                .map(this::convertToDTO);
+                .map(edgeNodeConverter::convertToDTO);
     }
 
     @Override
     public Page<EdgeNodeDTO> getEdgeNodesByStatus(EdgeNode.NodeStatus status, Pageable pageable) {
         return edgeNodeRepository.findByStatus(status, pageable)
-                .map(this::convertToDTO);
+                .map(edgeNodeConverter::convertToDTO);
     }
 
     @Override
     public EdgeNodeDTO getEdgeNodeById(Long id) {
         EdgeNode edgeNode = edgeNodeRepository.findById(id)
                 .orElseThrow(() -> new ServiceException("Edge node not found with id: " + id));
-        return convertToDTO(edgeNode);
+        return edgeNodeConverter.convertToDTO(edgeNode);
     }
 
     @Override
@@ -74,27 +77,54 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
             throw new ServiceException("Edge node with this IP address already exists: " + edgeNodeDTO.getIpAddress());
         }
 
-        EdgeNode edgeNode = EdgeNode.builder()
-                .uuid(generateNodeUuid())
-                .name(edgeNodeDTO.getName())
-                .ipAddress(edgeNodeDTO.getIpAddress())
-                .location(edgeNodeDTO.getLocation())
-                .status(EdgeNode.NodeStatus.ONLINE)
-                .maxCameraSupport(edgeNodeDTO.getMaxCameraSupport())
-                .currentCameraCount(edgeNodeDTO.getCurrentCameraCount())
-                .port(edgeNodeDTO.getPort())
-                .softwareVersion(edgeNodeDTO.getSoftwareVersion())
-                .hardwareInfo(edgeNodeDTO.getHardwareInfo())
-                .networkBandwidth(edgeNodeDTO.getNetworkBandwidth())
-                .enabled(edgeNodeDTO.isEnabled())
-                .lastHeartbeatTime(LocalDateTime.now())
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        EdgeNode edgeNode = edgeNodeConverter.convertToEntity(edgeNodeDTO);
+        if (edgeNode.getUuid() == null) {
+            edgeNode.setUuid(generateNodeUuid());
+        }
+        edgeNode.setStatus(EdgeNode.NodeStatus.ONLINE);
+        edgeNode.setLastHeartbeatTime(LocalDateTime.now());
+        edgeNode.setCreatedAt(LocalDateTime.now());
+        edgeNode.setUpdatedAt(LocalDateTime.now());
 
         EdgeNode savedNode = edgeNodeRepository.save(edgeNode);
         log.info("Created new edge node: {} ({})", savedNode.getName(), savedNode.getIpAddress());
-        return convertToDTO(savedNode);
+        return edgeNodeConverter.convertToDTO(savedNode);
+    }
+
+    @Override
+    @Transactional
+    public EdgeNodeDTO registerEdgeNode(EdgeNodeDTO edgeNodeDTO) {
+        // 检查节点是否已存在（通过名称或UUID）
+        Optional<EdgeNode> existingNodeOpt = edgeNodeRepository.findByName(edgeNodeDTO.getName());
+        if (!existingNodeOpt.isPresent() && StringUtils.hasText(edgeNodeDTO.getUuid())) {
+            existingNodeOpt = edgeNodeRepository.findByUuid(edgeNodeDTO.getUuid());
+        }
+
+        EdgeNode edgeNode;
+        if (existingNodeOpt.isPresent()) {
+            // 更新现有节点
+            edgeNode = existingNodeOpt.get();
+            edgeNodeConverter.updateEntityFromDTO(edgeNodeDTO, edgeNode);
+            edgeNode.setLastHeartbeatTime(LocalDateTime.now());
+            edgeNode.setStatus(EdgeNode.NodeStatus.ONLINE);
+            edgeNode.setUpdatedAt(LocalDateTime.now());
+            log.info("Updated existing edge node: {} ({})", edgeNode.getName(), edgeNode.getIpAddress());
+        } else {
+            // 创建新节点
+            edgeNode = edgeNodeConverter.convertToEntity(edgeNodeDTO);
+            if (edgeNode.getUuid() == null) {
+                edgeNode.setUuid(StringUtils.hasText(edgeNodeDTO.getUuid()) ? edgeNodeDTO.getUuid() : generateNodeUuid());
+            }
+            edgeNode.setStatus(EdgeNode.NodeStatus.ONLINE);
+            edgeNode.setLastHeartbeatTime(LocalDateTime.now());
+            edgeNode.setCreatedAt(LocalDateTime.now());
+            edgeNode.setUpdatedAt(LocalDateTime.now());
+            edgeNode.setEnabled(true);
+            log.info("Registered new edge node: {} ({})", edgeNode.getName(), edgeNode.getIpAddress());
+        }
+
+        EdgeNode savedNode = edgeNodeRepository.save(edgeNode);
+        return edgeNodeConverter.convertToDTO(savedNode);
     }
 
     @Override
@@ -109,15 +139,11 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
             throw new ServiceException("Edge node with this IP address and port already exists: " + edgeNodeDTO.getIpAddress() + ":" + edgeNodeDTO.getPort());
         }
 
-        edgeNode.setName(edgeNodeDTO.getName());
-        edgeNode.setIpAddress(edgeNodeDTO.getIpAddress());
-        edgeNode.setLocation(edgeNodeDTO.getLocation());
-        edgeNode.setMaxCameraSupport(edgeNodeDTO.getMaxCameraSupport());
-        edgeNode.setCurrentCameraCount(edgeNodeDTO.getCurrentCameraCount());
+        edgeNodeConverter.updateEntityFromDTO(edgeNodeDTO, edgeNode);
         edgeNode.setUpdatedAt(LocalDateTime.now());
 
         EdgeNode updatedNode = edgeNodeRepository.save(edgeNode);
-        return convertToDTO(updatedNode);
+        return edgeNodeConverter.convertToDTO(updatedNode);
     }
 
     @Override
@@ -183,18 +209,23 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
     @Override
     @Transactional
     public void registerHeartbeatByNodeId(String nodeId, Map<String, Object> metrics) {
-        // Try to find by name first (most common case)
-        Optional<EdgeNode> edgeNodeOpt = edgeNodeRepository.findByName(nodeId);
-        
-        // If not found by name, try by UUID
-        if (!edgeNodeOpt.isPresent()) {
-            edgeNodeOpt = edgeNodeRepository.findByUuid(nodeId);
-        }
-        
-        EdgeNode edgeNode = edgeNodeOpt.orElseThrow(() -> 
-            new ServiceException("Edge node not found with nodeId: " + nodeId));
+        try {
+            // Try to find by name first (most common case)
+            Optional<EdgeNode> edgeNodeOpt = edgeNodeRepository.findByName(nodeId);
 
-        updateNodeHeartbeat(edgeNode, metrics);
+            // If not found by name, try by UUID
+            if (!edgeNodeOpt.isPresent()) {
+                edgeNodeOpt = edgeNodeRepository.findByUuid(nodeId);
+            }
+
+            EdgeNode edgeNode = edgeNodeOpt.orElseThrow(() ->
+                    new ServiceException("Edge node not found with nodeId: " + nodeId));
+
+            updateNodeHeartbeat(edgeNode, metrics);
+        } catch (Exception e) {
+            log.error("Error registering heartbeat for node: " + nodeId, e);
+            throw e;
+        }
     }
 
     private void updateNodeHeartbeat(EdgeNode edgeNode, Map<String, Object> metrics) {
@@ -223,33 +254,55 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
                 .orElseThrow(() -> new ServiceException("Edge node not found with id: " + nodeId));
 
         // 在实际实现中，这应该从监控系统获取实时统计数据
-        return new HashMap<String, Object>() {{
-            put("id", edgeNode.getId());
-            put("name", edgeNode.getName());
-            put("status", edgeNode.getStatus());
-            put("lastHeartbeatTime", edgeNode.getLastHeartbeatTime());
-            put("currentCameraCount", edgeNode.getCurrentCameraCount());
-            put("maxCameraSupport", edgeNode.getMaxCameraSupport());
-            put("cpuUsage", edgeNode.getCpuUsage());
-            put("memoryUsage", edgeNode.getMemoryUsage());
-            put("storageUsage", edgeNode.getStorageUsage());
-            put("networkBandwidth", edgeNode.getNetworkBandwidth());
-            put("systemMetrics", edgeNode.getSystemMetrics() != null ? edgeNode.getSystemMetrics() : new HashMap<>());
-            put("networkMetrics", edgeNode.getSystemMetrics() != null ? edgeNode.getSystemMetrics().get("network") : null);
-        }};
+        Map<String, Object> result = new HashMap<>();
+        result.put("id", edgeNode.getId());
+        result.put("name", edgeNode.getName());
+        result.put("status", edgeNode.getStatus());
+        result.put("lastHeartbeatTime", edgeNode.getLastHeartbeatTime());
+        result.put("currentCameraCount", edgeNode.getCurrentCameraCount());
+        result.put("maxCameraSupport", edgeNode.getMaxCameraSupport());
+        result.put("cpuUsage", edgeNode.getCpuUsage());
+        result.put("memoryUsage", edgeNode.getMemoryUsage());
+        result.put("storageUsage", edgeNode.getStorageUsage());
+        result.put("networkBandwidth", edgeNode.getNetworkBandwidth());
+        result.put("systemMetrics", edgeNode.getSystemMetrics() != null ? edgeNode.getSystemMetrics() : new HashMap<>());
+        result.put("networkMetrics", edgeNode.getSystemMetrics() != null ? edgeNode.getSystemMetrics().get("network") : null);
+        
+        // 添加基本信息字段
+        result.put("uuid", edgeNode.getUuid());
+        result.put("location", edgeNode.getLocation());
+        result.put("ipAddress", edgeNode.getIpAddress());
+        result.put("port", edgeNode.getPort());
+        result.put("softwareVersion", edgeNode.getSoftwareVersion());
+        result.put("hardwareInfo", edgeNode.getHardwareInfo());
+        result.put("enabled", edgeNode.isEnabled());
+        result.put("createdAt", edgeNode.getCreatedAt());
+        result.put("updatedAt", edgeNode.getUpdatedAt());
+        
+        return result;
     }
 
     @Override
     public List<EdgeNodeDTO> getOnlineEdgeNodes() {
         return edgeNodeRepository.findByStatusAndEnabled(EdgeNode.NodeStatus.ONLINE, true)
                 .stream()
-                .map(this::convertToDTO)
+                .map(edgeNodeConverter::convertToDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public long getEdgeNodeCountByStatus(EdgeNode.NodeStatus status) {
-        return edgeNodeRepository.countByStatus(status);
+        if (status != null) {
+            return edgeNodeRepository.countByStatus(status);
+        } else {
+            return edgeNodeRepository.count();
+        }
+    }
+    
+    @Override
+    public long getEdgeNodeCount() {
+        log.info("Counting all edge nodes");
+        return edgeNodeRepository.count();
     }
 
     @Override
@@ -285,29 +338,4 @@ public class EdgeNodeServiceImpl implements EdgeNodeService {
         return "edge-" + UUID.randomUUID().toString().substring(0, 8);
     }
 
-    /**
-     * 将实体转换为DTO
-     */
-    private EdgeNodeDTO convertToDTO(EdgeNode edgeNode) {
-        return EdgeNodeDTO.builder()
-                .id(edgeNode.getId())
-                .uuid(edgeNode.getUuid())
-                .name(edgeNode.getName())
-                .ipAddress(edgeNode.getIpAddress())
-                .location(edgeNode.getLocation())
-                .status(edgeNode.getStatus())
-                .lastHeartbeatTime(edgeNode.getLastHeartbeatTime())
-                .cpuUsage(edgeNode.getCpuUsage())
-                .memoryUsage(edgeNode.getMemoryUsage())
-                .storageUsage(edgeNode.getStorageUsage())
-                .maxCameraSupport(edgeNode.getMaxCameraSupport())
-                .currentCameraCount(edgeNode.getCurrentCameraCount())
-                .softwareVersion(edgeNode.getSoftwareVersion())
-                .hardwareInfo(edgeNode.getHardwareInfo())
-                .networkBandwidth(edgeNode.getNetworkBandwidth())
-                .enabled(edgeNode.isEnabled())
-                .createdAt(edgeNode.getCreatedAt())
-                .updatedAt(edgeNode.getUpdatedAt())
-                .build();
-    }
 }

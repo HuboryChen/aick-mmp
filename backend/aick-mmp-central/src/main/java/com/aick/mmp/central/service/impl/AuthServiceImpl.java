@@ -30,8 +30,15 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public LoginResponse login(LoginRequest loginRequest) {
         try {
+            log.info("Attempting login for user: {}", loginRequest.getUsername());
+            
             User user = userRepository.findActiveUserByUsername(loginRequest.getUsername())
-                    .orElseThrow(() -> new RuntimeException("用户名或密码错误"));
+                    .orElseThrow(() -> {
+                        log.warn("User not found: {}", loginRequest.getUsername());
+                        return new RuntimeException("用户名或密码错误");
+                    });
+
+            log.info("User found: {}, enabled: {}, status: {}", user.getUsername(), user.isEnabled(), user.getStatus());
 
             if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
                 log.warn("用户 {} 密码验证失败", loginRequest.getUsername());

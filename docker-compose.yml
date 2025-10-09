@@ -77,6 +77,20 @@ services:
     networks:
       - aick-network
 
+  # RTSP服务器 - 用于接收OBS推流
+  rtsp-server:
+    image: bluenviron/mediamtx:latest
+    container_name: aick-mmp-rtsp-server
+    restart: always
+    ports:
+      - "8554:8554"
+      - "1935:1935"
+      - "8888:8888"
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml
+    networks:
+      - aick-network
+
   # Central Services
   central-1:
     build:
@@ -99,7 +113,7 @@ services:
       SPRING_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       JANUS_SERVER_URL: http://janus:8088
-      JWT_SECRET: aick_mmp_super_secret_jwt_key_2024_central_server
+      JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
     volumes:
       - central-1-data:/app/data
       - ./backend/logs/central-1:/app/logs
@@ -117,38 +131,38 @@ services:
       retries: 3
       start_period: 60s
 
-  central-2:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: central-runtime
-    container_name: aick-mmp-central-2
-    restart: always
-    depends_on:
-      - mysql
-      - redis
-      - kafka
-      - janus
-    environment:
-      SPRING_PROFILES_ACTIVE: central
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
-      SPRING_DATASOURCE_USERNAME: aickuser
-      SPRING_DATASOURCE_PASSWORD: aickpassword
-      SPRING_REDIS_HOST: redis
-      SPRING_REDIS_PORT: 6379
-      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      JANUS_SERVER_URL: http://janus:8088
-      JWT_SECRET: aick_mmp_super_secret_jwt_key_2024_central_server
-    volumes:
-      - central-2-data:/app/data
-      - ./backend/logs/central-2:/app/logs
-    networks:
-      - aick-network
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 2G
+#  central-2:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      target: central-runtime
+#    container_name: aick-mmp-central-2
+#    restart: always
+#    depends_on:
+#      - mysql
+#      - redis
+#      - kafka
+#      - janus
+#    environment:
+#      SPRING_PROFILES_ACTIVE: central
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+#      SPRING_DATASOURCE_USERNAME: aickuser
+#      SPRING_DATASOURCE_PASSWORD: aickpassword
+#      SPRING_REDIS_HOST: redis
+#      SPRING_REDIS_PORT: 6379
+#      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+#      JANUS_SERVER_URL: http://janus:8088
+#      JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
+#    volumes:
+#      - central-2-data:/app/data
+#      - ./backend/logs/central-2:/app/logs
+#    networks:
+#      - aick-network
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '1'
+#          memory: 2G
 
   central-lb:
     image: nginx:alpine
@@ -161,7 +175,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
     depends_on:
       - central-1
-      - central-2
+#      - central-2
     networks:
       - aick-network
 
@@ -187,16 +201,16 @@ services:
     container_name: aick-mmp-edge-node-1
     restart: always
     ports:
-      - "8081:8081"
+      - "8081:8080"
     environment:
       SPRING_PROFILES_ACTIVE: edge
       NODE_ID: node-1
       REGION: region-a
-      SERVER_PORT: 8081
-      CENTRAL_SERVER_URL: http://central-lb:80
-      REGISTRY_SERVER: http://central-lb:80/api/registry
+      SERVER_PORT: 8080
+      CENTRAL_SERVER_URL: http://central-lb
+      REGISTRY_SERVER: http://central-lb/api/registry
       HEARTBEAT_INTERVAL: 30
-      JWT_SECRET: aick_mmp_super_secret_jwt_key_2024_edge_node
+      JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
     volumes:
       - edge-node-1-data:/app/data
       - ./backend/logs/edge-1:/app/logs
@@ -211,43 +225,49 @@ services:
           cpus: '0.5'
           memory: 1G
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/api/actuator/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
 
-  edge-node-2:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: edge-runtime
-    container_name: aick-mmp-edge-node-2
-    restart: always
-    ports:
-      - "8082:8081"
-    environment:
-      SPRING_PROFILES_ACTIVE: edge
-      NODE_ID: node-2
-      REGION: region-a
-      SERVER_PORT: 8081
-      CENTRAL_SERVER_URL: http://central-lb:80
-      REGISTRY_SERVER: http://central-lb:80/api/registry
-      HEARTBEAT_INTERVAL: 30
-      JWT_SECRET: aick_mmp_super_secret_jwt_key_2024_edge_node
-    volumes:
-      - edge-node-2-data:/app/data
-      - ./backend/logs/edge-2:/app/logs
-    depends_on:
-      - redis
-      - central-lb
-    networks:
-      - aick-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 1G
+#  edge-node-2:
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#      target: edge-runtime
+#    container_name: aick-mmp-edge-node-2
+#    restart: always
+#    ports:
+#      - "8082:8080"
+#    environment:
+#      SPRING_PROFILES_ACTIVE: edge
+#      NODE_ID: node-2
+#      REGION: region-a
+#      SERVER_PORT: 8080
+#      CENTRAL_SERVER_URL: http://central-lb
+#      REGISTRY_SERVER: http://central-lb/api/registry
+#      HEARTBEAT_INTERVAL: 30
+#      JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
+#    volumes:
+#      - edge-node-2-data:/app/data
+#      - ./backend/logs/edge-2:/app/logs
+#    depends_on:
+#      - redis
+#      - central-lb
+#    networks:
+#      - aick-network
+#    deploy:
+#      resources:
+#        limits:
+#          cpus: '0.5'
+#          memory: 1G
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:8080/api/actuator/health" ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 30s
 
   edge-lb:
     image: nginx:alpine
@@ -260,7 +280,7 @@ services:
       - ./nginx/conf.d:/etc/nginx/conf.d
     depends_on:
       - edge-node-1
-      - edge-node-2
+#      - edge-node-2
     networks:
       - aick-network
 

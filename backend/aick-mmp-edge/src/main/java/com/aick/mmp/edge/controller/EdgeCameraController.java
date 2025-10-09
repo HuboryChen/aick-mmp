@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/edge/cameras")
+@RequestMapping("/edge/cameras")
 @Tag(name = "Edge Camera Management", description = "Camera management operations on edge nodes")
 @Profile("edge")
 @RequiredArgsConstructor

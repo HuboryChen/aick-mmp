@@ -1,31 +1,35 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, Typography, message, Row, Col } from 'antd';
+import { Form, Input, Button, Card, Typography, message, Row, Col, Checkbox } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import axiosInstance from '../utils/axios';
-import Cookies from 'js-cookie';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 const { Title, Text } = Typography;
 
-const Login = ({ setUserInfo }) => {
+const Login = () => {
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
-      const response = await axiosInstance.post('/api/auth/login', {
-        username: values.username,
-        password: values.password
-      });
+      const result = await login(values);
       
-      const { token, user } = response.data;
-      Cookies.set('token', token, { expires: 7 });
-      setUserInfo(user);
-      message.success('登录成功！');
-      navigate('/dashboard');
+      if (result.success) {
+        message.success('登录成功！');
+        navigate('/dashboard');
+      } else {
+        message.error(result.error || '登录失败，请检查用户名和密码');
+      }
     } catch (error) {
-      message.error(error.response?.data?.message || '登录失败，请检查用户名和密码');
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.response?.data?.error ||
+                          error.message || 
+                          '登录失败，请检查用户名和密码';
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -60,27 +64,41 @@ const Login = ({ setUserInfo }) => {
               onFinish={onFinish}
               autoComplete="off"
               size="large"
+              layout="vertical"
+              requiredMark={false}
             >
               <Form.Item
+                label="用户名"
                 name="username"
                 rules={[{ required: true, message: '请输入用户名!' }]}
+                hasFeedback
               >
                 <Input
                   prefix={<UserOutlined />}
                   placeholder="用户名"
+                  size="large"
                 />
               </Form.Item>
 
               <Form.Item
+                label="密码"
                 name="password"
                 rules={[{ required: true, message: '请输入密码!' }]}
+                hasFeedback
               >
                 <Input.Password
                   prefix={<LockOutlined />}
                   placeholder="密码"
+                  size="large"
                 />
               </Form.Item>
 
+              <Form.Item>
+                <Form.Item name="remember" valuePropName="checked" noStyle>
+                  <Checkbox onChange={(e) => setRemember(e.target.checked)}>记住我</Checkbox>
+                </Form.Item>
+              </Form.Item>
+              
               <Form.Item>
                 <Button
                   type="primary"
@@ -102,6 +120,11 @@ const Login = ({ setUserInfo }) => {
               <Text type="secondary" style={{ fontSize: '12px' }}>
                 默认账号: admin / admin123
               </Text>
+              <div style={{ marginTop: '10px' }}>
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                  {remember ? '已启用记住我功能' : '未启用记住我功能'}
+                </Text>
+              </div>
             </div>
           </Card>
         </Col>

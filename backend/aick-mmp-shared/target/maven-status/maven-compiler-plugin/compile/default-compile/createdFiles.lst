@@ -10,6 +10,7 @@ com/aick/mmp/shared/exception/GlobalExceptionHandler.class
 com/aick/mmp/shared/exception/ServiceException.class
 com/aick/mmp/shared/model/StreamSession.class
 com/aick/mmp/shared/model/Camera$Protocol.class
+com/aick/mmp/shared/model/Region.class
 com/aick/mmp/shared/model/EdgeNode.class
 com/aick/mmp/shared/model/StreamSession$StreamStatus.class
 com/aick/mmp/dto/UserDTO.class
@@ -26,6 +27,8 @@ com/aick/mmp/shared/model/EdgeNode$NodeStatus.class
 com/aick/mmp/shared/model/Camera.class
 com/aick/mmp/dto/UserDTO$UserDTOBuilder.class
 com/aick/mmp/shared/config/ModelMapperConfig.class
+com/aick/mmp/shared/model/Region$RegionBuilder.class
+com/aick/mmp/shared/adapter/protocol/RtmpProtocolAdapter.class
 com/aick/mmp/shared/adapter/protocol/RtspProtocolAdapter.class
 com/aick/mmp/shared/exception/ErrorResponse.class
 com/aick/mmp/shared/model/User$UserRole.class

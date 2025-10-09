@@ -2,6 +2,7 @@
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/adapter/protocol/OnvifProtocolAdapter.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/adapter/protocol/ProtocolAdapter.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/adapter/protocol/ProtocolAdapterFactory.java
+/Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/adapter/protocol/RtmpProtocolAdapter.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/adapter/protocol/RtspProtocolAdapter.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/config/ModelMapperConfig.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/converter/MapToStringConverter.java
@@ -15,6 +16,8 @@
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/model/Camera.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/model/CdnNode.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/model/EdgeNode.java
+/Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/model/Region.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/model/StreamSession.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/model/User.java
 /Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/util/JwtUtil.java
+/Users/huborychen/Documents/my-workspace/aick-mmp/backend/aick-mmp-shared/src/main/java/com/aick/mmp/shared/util/JwtUtilTest.java

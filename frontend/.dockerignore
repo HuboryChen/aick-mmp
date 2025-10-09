@@ -1,13 +1,41 @@
-node_modules/
-build/
-.git/
-.idea/
-.vscode/
-*.log
+# Dependencies
+node_modules
+
+# Build outputs
+build
+
+# IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
 .DS_Store
-README.md
-*.md
-.env
-.env.local
-.env.production
-.env.development
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional typescript cache
+*.tsbuildinfo
+
+# Optional testing files
+coverage
+
+# Environment files
+.env*
+!.env.example
+
+# Runtime data
+*.log
+*.tmp
+*.temp
+
+# OS generated files
+Thumbs.db

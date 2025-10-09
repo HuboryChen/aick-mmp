@@ -10,12 +10,84 @@
   background: #f0f2f5;
 }
 
+/* 修复侧边栏遮挡内容的问题 */
+.ant-layout {
+  position: relative;
+}
+
 .ant-layout-sider {
   z-index: 1000;
 }
 
 .ant-layout-header {
   z-index: 999;
+  padding: 0 16px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* 当侧边栏展开时，为内容区域添加左边距 */
+.content-expanded {
+  transition: margin-left 0.2s;
+  margin-left: 200px;
+}
+
+.content-collapsed {
+  transition: margin-left 0.2s;
+  margin-left: 80px;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 响应式布局 */
+@media (max-width: 768px) {
+  .ant-layout-header {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  .content-expanded,
+  .content-collapsed {
+    margin-left: 0;
+  }
+}
+
+/* 动画效果 */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
 }
 
 /* 视频墙样式 */
@@ -86,31 +158,7 @@
   display: block;
 }
 
-/* 自定义滚动条 */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
-}
-
-/* 响应式布局 */
 @media (max-width: 768px) {
-  .ant-layout-header {
-    margin-left: 0 !important;
-  }
-  
   .video-grid {
     padding: 8px;
     gap: 4px;
@@ -120,23 +168,4 @@
     padding: 4px 8px;
     font-size: 10px;
   }
-}
-
-/* 动画效果 */
-.fade-in {
-  animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.slide-in {
-  animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
 }

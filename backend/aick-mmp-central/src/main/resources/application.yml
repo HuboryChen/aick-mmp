@@ -9,10 +9,16 @@ server:
 
 spring:
   application:
-    name: mmp-backend
+    name: mmp-central-server
+
+  logging:
+    level:
+      root: INFO
+      com.aick.mmp.central: DEBUG
+      com.aick.mmp.shared: DEBUG
 
   datasource:
-    url: jdbc:mysql://${SPRING_DATASOURCE_URL:mysql:3306/aick_mmp}?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: ${SPRING_DATASOURCE_URL:jdbc:mysql://localhost:3306/aick_mmp?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
     username: ${SPRING_DATASOURCE_USERNAME:aickuser}
     password: ${SPRING_DATASOURCE_PASSWORD:aickpassword}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -34,7 +40,7 @@ spring:
 
   data:
     redis:
-      host: ${SPRING_REDIS_HOST:redis}
+      host: ${SPRING_REDIS_HOST:localhost}
       port: ${SPRING_REDIS_PORT:6379}
       password: ${SPRING_REDIS_PASSWORD:}
       timeout: 2000ms
@@ -47,7 +53,7 @@ spring:
             max-wait: 5000ms
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: mmp-video-group
       auto-offset-reset: earliest
@@ -66,14 +72,24 @@ spring:
     allow-credentials: true
     max-age: 3600
 
+# Management endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
 # WebRTC Configuration
 webrtc:
   config:
     janus:
-      server-url: ${JANUS_SERVER_URL:http://janus:8088}
+      server-url: ${JANUS_SERVER_URL:http://localhost:8088}
       timeout: 5000
     kurento:
-      server-url: ${KURENTO_SERVER_URL:wss://kurento:8443/kurento}
+      server-url: ${KURENTO_SERVER_URL:wss://localhost:8443/kurento}
     ice-servers:
       - urls: stun:stun.l.google.com:19302
       - urls: stun:stun1.l.google.com:19302
@@ -95,10 +111,13 @@ video:
 # Security Configuration
 security:
   jwt:
-    secret: ${JWT_SECRET:mmp-secret-key-change-in-production-environment}
-    expiration: 86400000
-    refresh-expiration: 604800000
-  allowed-origins: ${SECURITY_ALLOWED_ORIGINS:*}
+    # IMPORTANT: Change this secret key in production environment!
+    # Key generated at: 2025-05-13T15:30:00+08:00
+    # Recommended: Use a strong key with at least 256 bits (32 bytes)
+    secret: ${JWT_SECRET:mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure}
+    expiration: 86400000  # 24 hours in milliseconds
+    refresh-expiration: 604800000  # 7 days in milliseconds
+  allowed-origins: ${SECURITY_ALLOWED_ORIGINS:*}  # Comma-separated list of allowed origins
 
 # Logging Configuration
 logging:
@@ -121,71 +140,3 @@ edge-node:
   reconnect-interval: 5000
   max-reconnect-attempts: 10
   local-storage-path: ${EDGE_STORAGE_PATH:/var/local/mmp/edge-storage}
-
----
-# Central Server Profile
-spring:
-  config:
-    activate:
-      on-profile: central
-  application:
-    name: mmp-central-server
-
-logging:
-  level:
-    root: INFO
-    com.aick.mmp.central: DEBUG
-    com.aick.mmp.shared: DEBUG
-
----
-# Edge Node Profile
-spring:
-  config:
-    activate:
-      on-profile: edge
-  application:
-    name: mmp-edge-node
-  
-  # H2 Database for edge local caching
-  datasource:
-    url: jdbc:h2:mem:edge_cache
-    driver-class-name: org.h2.Driver
-    username: sa
-    password: 
-  
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: false
-    database-platform: org.hibernate.dialect.H2Dialect
-  
-  # H2 Console (for development)
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-
-server:
-  port: ${SERVER_PORT:8080}
-
-# Edge-specific configuration
-edge:
-  node-id: ${NODE_ID:edge-node-1}
-  region: ${REGION:region-a}
-  central-server-url: ${CENTRAL_SERVER_URL:http://localhost:8080}
-  registry-server: ${REGISTRY_SERVER:http://localhost:8080/api/registry}
-  heartbeat-interval: ${HEARTBEAT_INTERVAL:30}
-  max-concurrent-streams: ${MAX_CONCURRENT_STREAMS:10}
-  network-monitoring:
-    interval-seconds: 60
-    cpu-threshold: 80.0
-    memory-threshold: 85.0
-    bandwidth-threshold: 80.0
-
-logging:
-  level:
-    root: INFO
-    com.aick.mmp.edge: DEBUG
-    com.aick.mmp.shared: DEBUG
-  file:
-    name: ${LOG_FILE_PATH:/var/log/mmp/edge-node.log}

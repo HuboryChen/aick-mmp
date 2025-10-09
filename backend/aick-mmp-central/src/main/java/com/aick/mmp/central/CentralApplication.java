@@ -14,9 +14,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableAsync
 @EnableScheduling
 @EnableJpaRepositories(basePackages = {
-    "com.aick.mmp.central.repository",
-    "com.aick.mmp.shared.repository",
-    "com.aick.mmp.repository"
+    "com.aick.mmp.central.repository"
 })
 @EntityScan(basePackages = {
     "com.aick.mmp.shared.model",
@@ -24,13 +22,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 })
 @ComponentScan(basePackages = {
     "com.aick.mmp.central",
-    "com.aick.mmp.shared",
-    "com.aick.mmp.exception",
-    "com.aick.mmp.util",
-    "com.aick.mmp.service",
-    "com.aick.mmp.controller",
-    "com.aick.mmp.dto",
-    "com.aick.mmp.repository"
+    "com.aick.mmp.shared"
 })
 @Profile("central")
 @Slf4j

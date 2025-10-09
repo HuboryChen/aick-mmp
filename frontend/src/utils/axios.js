@@ -4,7 +4,7 @@ import { message } from 'antd';
 
 // Create axios instance
 const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL || 'http://localhost:8080',
+  baseURL: process.env.REACT_APP_API_BASE_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -48,6 +48,8 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   (error) => {
+    const originalRequest = error.config;
+    
     console.error('API Error:', {
       status: error.response?.status,
       url: error.config?.url,
@@ -55,46 +57,46 @@ axiosInstance.interceptors.response.use(
       data: error.response?.data,
     });
 
-    // Handle common error scenarios
+    // Handle common error scenarios - but don't display messages here
+    // Let individual components handle error messages to avoid duplicates
     if (error.response) {
       const { status, data } = error.response;
       
       switch (status) {
         case 401:
-          // Unauthorized - clear token and redirect to login
-          Cookies.remove('token');
-          message.error('Session expired, please login again');
-          window.location.href = '/login';
+          // Unauthorized - clear token except for login and auth check endpoints
+          if (!originalRequest.url?.includes('/auth/login') && 
+              !originalRequest.url?.includes('/auth/me')) {
+            Cookies.remove('token');
+            // Don't show message here, let component handle it
+            // message.error('登录已过期，请重新登录');
+            // 重定向到登录页面
+            window.location.href = '/login';
+          }
           break;
           
         case 403:
-          // Forbidden
-          message.error('Access denied');
+          // Forbidden - handled by components
           break;
           
         case 404:
-          // Not found
-          message.error('Resource not found');
+          // Not found - handled by components
           break;
           
         case 500:
-          // Server error
-          message.error('Server error, please try again later');
+          // Server error - handled by components
           break;
           
         default:
-          // Other errors
-          const errorMessage = data?.message || `Request failed with status ${status}`;
-          message.error(errorMessage);
+          // Other errors - handled by components
+          break;
       }
     } else if (error.request) {
-      // Network error
+      // Network error - handled by components
       console.error('Network Error:', error.request);
-      message.error('Network connection error, please check your connection');
     } else {
-      // Other errors
+      // Other errors - handled by components
       console.error('Error:', error.message);
-      message.error('An unexpected error occurred');
     }
 
     return Promise.reject(error);

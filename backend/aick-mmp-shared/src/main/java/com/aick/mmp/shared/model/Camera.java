@@ -71,7 +71,7 @@ public class Camera {
     private LocalDateTime updatedAt;
 
     public enum Protocol {
-        RTSP, ONVIF, GB28181, HTTP
+        RTSP, ONVIF, GB28181, HTTP, RTMP
     }
 
     public enum CameraStatus {

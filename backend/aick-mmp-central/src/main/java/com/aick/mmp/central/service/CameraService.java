@@ -2,6 +2,7 @@ package com.aick.mmp.central.service;
 
 import com.aick.mmp.central.dto.CameraDTO;
 import com.aick.mmp.central.dto.CameraStatusUpdateDTO;
+import com.aick.mmp.central.dto.GetCamerasRequestDTO;
 import com.aick.mmp.shared.model.Camera;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +12,7 @@ import java.util.Map;
 
 public interface CameraService {
     Page<CameraDTO> getAllCameras(Pageable pageable);
+    Page<CameraDTO> getCameras(GetCamerasRequestDTO request);
     Page<CameraDTO> getCamerasByLocation(String location, Pageable pageable);
     Page<CameraDTO> getCamerasByEdgeNodeId(Long edgeNodeId, Pageable pageable);
     Page<CameraDTO> getCamerasByStatus(Camera.CameraStatus status, Pageable pageable);
@@ -25,5 +27,10 @@ public interface CameraService {
     Map<String, Object> getCameraStatistics(Long cameraId);
     List<CameraDTO> getOnlineCamerasByEdgeNode(Long edgeNodeId);
     long getCameraCountByStatus(Camera.CameraStatus status);
+    long getCameraCount(); // 添加获取所有摄像头数量的方法
     boolean testCameraConnection(Long cameraId);
+    
+    // 添加流媒体相关方法
+    String startCameraStream(Long cameraId);
+    void stopCameraStream(Long cameraId);
 }

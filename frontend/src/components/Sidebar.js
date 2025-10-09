@@ -8,7 +8,8 @@ import {
   ClusterOutlined,
   HistoryOutlined,
   SettingOutlined,
-  UserOutlined
+  UserOutlined,
+  GlobalOutlined
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -37,6 +38,11 @@ const Sidebar = ({ collapsed }) => {
       key: '/edge-nodes',
       icon: <ClusterOutlined />,
       label: '边缘节点'
+    },
+    {
+      key: '/regions',
+      icon: <GlobalOutlined />,
+      label: '地区管理'
     },
     {
       key: '/playback',
@@ -71,6 +77,7 @@ const Sidebar = ({ collapsed }) => {
         left: 0,
         top: 0,
         bottom: 0,
+        zIndex: 1000,
       }}
     >
       <div className="logo" style={{

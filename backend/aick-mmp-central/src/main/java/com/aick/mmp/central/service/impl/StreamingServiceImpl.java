@@ -63,6 +63,12 @@ public class StreamingServiceImpl implements StreamingService {
     }
 
     @Override
+    public StreamSession startStream(Long cameraId) {
+        // 这里需要实现具体的启动流逻辑
+        throw new UnsupportedOperationException("Start stream by camera ID not implemented yet");
+    }
+
+    @Override
     public void stopStream(String sessionId) {
         try {
             StreamSession session = activeSessions.get(sessionId);
@@ -136,6 +142,12 @@ public class StreamingServiceImpl implements StreamingService {
     @Override
     public List<StreamSession> getActiveSessions() {
         return streamSessionRepository.findByStatus(StreamSession.StreamStatus.STREAMING);
+    }
+
+    @Override
+    public Map<String, Object> getStreamStatus(Long cameraId) {
+        // 实现获取流状态的逻辑
+        throw new UnsupportedOperationException("Get stream status by camera ID not implemented yet");
     }
 
     private ProtocolAdapter findProtocolAdapter(String protocolName) {

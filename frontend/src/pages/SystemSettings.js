@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, Typography, Form, Input, Select, Switch, Button, Row, Col, InputNumber, message } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
+import { settingsApi } from '../utils/api';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -9,8 +10,7 @@ const { TextArea } = Input;
 const SystemSettings = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-
-  const initialValues = {
+  const [initialValues, setInitialValues] = useState({
     systemName: '多地区视频监控系统',
     maxConcurrentStreams: 50,
     defaultResolution: '1280x720',
@@ -29,16 +29,35 @@ const SystemSettings = () => {
     webrtcStunServer: 'stun:stun.l.google.com:19302',
     logLevel: 'INFO',
     logRetentionDays: 30
+  });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await settingsApi.getSettings();
+      const settings = response.data;
+      
+      // 将获取到的设置合并到初始值中
+      const mergedValues = { ...initialValues, ...settings };
+      setInitialValues(mergedValues);
+      form.setFieldsValue(mergedValues);
+    } catch (error) {
+      console.error('获取系统设置失败:', error);
+      message.error('获取系统设置失败');
+    }
   };
 
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      // 模拟保存设置
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await settingsApi.updateSettings(values);
       message.success('设置保存成功');
     } catch (error) {
-      message.error('保存失败，请重试');
+      console.error('保存设置失败:', error);
+      message.error('保存设置失败: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }

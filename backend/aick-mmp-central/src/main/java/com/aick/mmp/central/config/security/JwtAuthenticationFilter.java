@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.util.AntPathMatcher;
 
 import java.io.IOException;
 
@@ -22,11 +23,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    
+    private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, 
                                    HttpServletResponse response, 
                                    FilterChain filterChain) throws ServletException, IOException {
+        
+        // Skip authentication for login endpoint and OPTIONS requests (for CORS)
+        String requestURI = request.getRequestURI();
+        String method = request.getMethod();
+        logger.info("Processing request: " + method + " " + requestURI);
+        
+        // Skip authentication for login, validate endpoints and OPTIONS requests
+        if (pathMatcher.match("/api/auth/login", requestURI) || 
+            pathMatcher.match("/api/auth/validate", requestURI) ||
+            "OPTIONS".equalsIgnoreCase(method)) {
+            logger.info("Skipping authentication for: " + method + " " + requestURI);
+            filterChain.doFilter(request, response);
+            return;
+        }
         
         String authHeader = request.getHeader("Authorization");
         String token = null;

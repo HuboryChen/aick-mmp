@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Card, Typography, DatePicker, Select, Button, Row, Col, List, Tag, Space } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Card, Typography, DatePicker, Select, Button, Row, Col, List, Tag, Space, message } from 'antd';
 import { PlayCircleOutlined, DownloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { recordingApi, cameraApi } from '../utils/api';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -8,61 +9,102 @@ const { Option } = Select;
 
 const Playback = () => {
   const [searchParams, setSearchParams] = useState({
-    camera: null,
+    cameraId: null,
     dateRange: null,
-    region: null
+    location: null
   });
   const [recordings, setRecordings] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [cameras, setCameras] = useState([]);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
 
-  const mockRecordings = [
-    {
-      id: 1,
-      camera: 'Camera-A-01',
-      region: '地区A',
-      startTime: '2024-01-15 09:00:00',
-      endTime: '2024-01-15 10:00:00',
-      duration: '01:00:00',
-      size: '1.2 GB',
-      quality: '1080P'
-    },
-    {
-      id: 2,
-      camera: 'Camera-A-02',
-      region: '地区A',
-      startTime: '2024-01-15 09:30:00',
-      endTime: '2024-01-15 10:30:00',
-      duration: '01:00:00',
-      size: '856 MB',
-      quality: '720P'
-    },
-    {
-      id: 3,
-      camera: 'Camera-B-01',
-      region: '地区B',
-      startTime: '2024-01-15 08:00:00',
-      endTime: '2024-01-15 09:00:00',
-      duration: '01:00:00',
-      size: '1.1 GB',
-      quality: '1080P'
+  useEffect(() => {
+    fetchCameras();
+  }, []);
+
+  const fetchCameras = async () => {
+    try {
+      const response = await cameraApi.getCameras({ size: 1000 });
+      setCameras(response.data.content);
+    } catch (error) {
+      console.error('获取摄像头列表失败:', error);
+      message.error('获取摄像头列表失败');
     }
-  ];
-
-  const handleSearch = () => {
-    setLoading(true);
-    // 模拟搜索
-    setTimeout(() => {
-      setRecordings(mockRecordings);
-      setLoading(false);
-    }, 1000);
   };
 
-  const handlePlay = (recording) => {
-    console.log('播放录像:', recording);
+  const fetchRecordings = async (params = {}) => {
+    setLoading(true);
+    try {
+      const response = await recordingApi.getRecordings({
+        page: pagination.current - 1,
+        size: pagination.pageSize,
+        ...params
+      });
+      
+      setRecordings(response.data.content);
+      setPagination({
+        ...pagination,
+        total: response.data.totalElements,
+        current: response.data.number + 1,
+      });
+    } catch (error) {
+      console.error('获取录像列表失败:', error);
+      message.error('获取录像列表失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    const params = {};
+    
+    if (searchParams.cameraId) {
+      params.cameraId = searchParams.cameraId;
+    }
+    
+    if (searchParams.location) {
+      params.location = searchParams.location;
+    }
+    
+    if (searchParams.dateRange && searchParams.dateRange.length === 2) {
+      params.startTime = searchParams.dateRange[0].toISOString();
+      params.endTime = searchParams.dateRange[1].toISOString();
+    }
+    
+    fetchRecordings(params);
+  };
+
+  const handleTableChange = (pager) => {
+    setPagination(pager);
+    fetchRecordings();
+  };
+
+  const handlePlay = async (recording) => {
+    try {
+      const response = await recordingApi.getRecordingUrl(recording.id);
+      const url = response.data.url;
+      // 在新窗口中打开录像播放链接
+      window.open(url, '_blank');
+    } catch (error) {
+      console.error('获取录像播放链接失败:', error);
+      message.error('获取录像播放链接失败');
+    }
   };
 
   const handleDownload = (recording) => {
+    // 下载录像功能
     console.log('下载录像:', recording);
+    message.info('下载功能将在后续版本中实现');
+  };
+
+  // 获取所有地区
+  const getAllLocations = () => {
+    const locations = [...new Set(cameras.map(camera => camera.location))];
+    return locations.filter(location => location); // 过滤掉空值
   };
 
   return (
@@ -78,13 +120,13 @@ const Playback = () => {
               <Select
                 style={{ width: '100%' }}
                 placeholder="请选择地区"
-                value={searchParams.region}
-                onChange={(value) => setSearchParams({...searchParams, region: value})}
+                value={searchParams.location}
+                onChange={(value) => setSearchParams({...searchParams, location: value})}
               >
                 <Option value="">全部地区</Option>
-                <Option value="地区A">地区A</Option>
-                <Option value="地区B">地区B</Option>
-                <Option value="地区C">地区C</Option>
+                {getAllLocations().map(location => (
+                  <Option key={location} value={location}>{location}</Option>
+                ))}
               </Select>
             </div>
           </Col>
@@ -95,13 +137,15 @@ const Playback = () => {
               <Select
                 style={{ width: '100%' }}
                 placeholder="请选择摄像头"
-                value={searchParams.camera}
-                onChange={(value) => setSearchParams({...searchParams, camera: value})}
+                value={searchParams.cameraId}
+                onChange={(value) => setSearchParams({...searchParams, cameraId: value})}
+                showSearch
+                optionFilterProp="children"
               >
                 <Option value="">全部摄像头</Option>
-                <Option value="Camera-A-01">Camera-A-01</Option>
-                <Option value="Camera-A-02">Camera-A-02</Option>
-                <Option value="Camera-B-01">Camera-B-01</Option>
+                {cameras.map(camera => (
+                  <Option key={camera.id} value={camera.id}>{camera.name}</Option>
+                ))}
               </Select>
             </div>
           </Col>
@@ -158,25 +202,28 @@ const Playback = () => {
               <List.Item.Meta
                 title={
                   <Space>
-                    <span>{item.camera}</span>
-                    <Tag color="blue">{item.region}</Tag>
+                    <span>{item.cameraName}</span>
+                    <Tag color="blue">{item.location}</Tag>
                     <Tag color="green">{item.quality}</Tag>
                   </Space>
                 }
                 description={
                   <div>
-                    <div>时间: {item.startTime} - {item.endTime}</div>
-                    <div>时长: {item.duration} | 大小: {item.size}</div>
+                    <div>时间: {new Date(item.startTime).toLocaleString()} - {new Date(item.endTime).toLocaleString()}</div>
+                    <div>时长: {Math.floor(item.duration / 60)}分钟 {item.duration % 60}秒 | 大小: {(item.size / (1024 * 1024)).toFixed(2)} MB</div>
                   </div>
                 }
               />
             </List.Item>
           )}
           pagination={{
-            pageSize: 10,
+            ...pagination,
             showSizeChanger: true,
             showQuickJumper: true,
             showTotal: (total) => `共 ${total} 个录像文件`,
+            onChange: (page, pageSize) => {
+              handleTableChange({ current: page, pageSize });
+            }
           }}
         />
       </Card>

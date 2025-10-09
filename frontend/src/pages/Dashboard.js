@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Statistic, Progress, List, Typography, Tag, Space } from 'antd';
+import { Row, Col, Card, Statistic, Progress, List, Typography, Tag, Space, message } from 'antd';
 import {
   VideoCameraOutlined,
   ClusterOutlined,
@@ -8,7 +8,7 @@ import {
   CheckCircleOutlined,
   PlayCircleOutlined
 } from '@ant-design/icons';
-import axios from 'axios';
+import { dashboardApi, cameraApi, edgeNodeApi } from '../utils/api';
 
 const { Title, Text } = Typography;
 
@@ -19,11 +19,13 @@ const Dashboard = () => {
     totalEdgeNodes: 0,
     onlineEdgeNodes: 0,
     totalStreams: 0,
-    activeStreams: 0
+    activeStreams: 0,
+    onlineUsers: 0
   });
   
   const [alerts, setAlerts] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -32,31 +34,50 @@ const Dashboard = () => {
   }, []);
 
   const fetchDashboardData = async () => {
+    setLoading(true);
     try {
-      // 模拟数据，实际应该从API获取
-      setStats({
-        totalCameras: 24,
-        onlineCameras: 22,
-        totalEdgeNodes: 6,
-        onlineEdgeNodes: 5,
-        totalStreams: 18,
-        activeStreams: 16
+      // 获取仪表盘统计数据
+      const statsResponse = await dashboardApi.getStats();
+      setStats(statsResponse.data);
+      
+      // 获取边缘节点统计数据（用于告警）
+      const edgeNodeResponse = await edgeNodeApi.getEdgeNodes({ size: 1000 });
+      const edgeNodes = edgeNodeResponse.data.content;
+      
+      // 设置告警数据（这里模拟一些告警）
+      const newAlerts = [];
+      const offlineNodes = edgeNodes.filter(node => node.status === 'OFFLINE');
+      
+      offlineNodes.slice(0, 3).forEach((node, index) => {
+        newAlerts.push({
+          id: `node-${index}`,
+          type: 'error',
+          message: `边缘节点 ${node.name} 离线`,
+          time: node.lastHeartbeatTime || '最近'
+        });
       });
       
-      setAlerts([
-        { id: 1, type: 'warning', message: '边缘节点 Node-A-02 连接不稳定', time: '10分钟前' },
-        { id: 2, type: 'error', message: '摄像头 Camera-B-05 离线', time: '25分钟前' },
-        { id: 3, type: 'info', message: '系统自动备份完成', time: '1小时前' }
-      ]);
+      setAlerts(newAlerts);
       
-      setActivities([
-        { id: 1, action: '新增摄像头', details: 'Camera-C-08 已成功添加', time: '2分钟前' },
-        { id: 2, action: '流媒体启动', details: '地区A的视频流已开始传输', time: '15分钟前' },
-        { id: 3, action: '节点重启', details: '边缘节点 Node-B-01 重启完成', time: '30分钟前' },
-        { id: 4, action: '用户登录', details: '管理员 admin 登录系统', time: '45分钟前' }
-      ]);
+      // 设置活动数据（这里模拟一些活动）
+      const newActivities = [];
+      
+      // 添加节点相关活动
+      edgeNodes.slice(0, 4).forEach((node, index) => {
+        newActivities.push({
+          id: `activity-node-${index}`,
+          action: '节点心跳',
+          details: `边缘节点 ${node.name} 发送心跳`,
+          time: node.lastHeartbeatTime || '最近'
+        });
+      });
+      
+      setActivities(newActivities);
     } catch (error) {
       console.error('获取仪表盘数据失败:', error);
+      message.error('获取仪表盘数据失败');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,7 +104,7 @@ const Dashboard = () => {
       {/* 统计卡片 */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card loading={loading}>
             <Statistic
               title="摄像头状态"
               value={stats.onlineCameras}
@@ -91,7 +112,7 @@ const Dashboard = () => {
               prefix={<VideoCameraOutlined />}
             />
             <Progress
-              percent={Math.round((stats.onlineCameras / stats.totalCameras) * 100)}
+              percent={stats.totalCameras ? Math.round((stats.onlineCameras / stats.totalCameras) * 100) : 0}
               size="small"
               status={stats.onlineCameras === stats.totalCameras ? 'success' : 'active'}
             />
@@ -99,7 +120,7 @@ const Dashboard = () => {
         </Col>
         
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card loading={loading}>
             <Statistic
               title="边缘节点"
               value={stats.onlineEdgeNodes}
@@ -107,7 +128,7 @@ const Dashboard = () => {
               prefix={<ClusterOutlined />}
             />
             <Progress
-              percent={Math.round((stats.onlineEdgeNodes / stats.totalEdgeNodes) * 100)}
+              percent={stats.totalEdgeNodes ? Math.round((stats.onlineEdgeNodes / stats.totalEdgeNodes) * 100) : 0}
               size="small"
               status={stats.onlineEdgeNodes === stats.totalEdgeNodes ? 'success' : 'active'}
             />
@@ -115,7 +136,7 @@ const Dashboard = () => {
         </Col>
         
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card loading={loading}>
             <Statistic
               title="视频流"
               value={stats.activeStreams}
@@ -123,7 +144,7 @@ const Dashboard = () => {
               prefix={<WifiOutlined />}
             />
             <Progress
-              percent={Math.round((stats.activeStreams / stats.totalStreams) * 100)}
+              percent={stats.totalStreams ? Math.round((stats.activeStreams / stats.totalStreams) * 100) : 0}
               size="small"
               status={stats.activeStreams === stats.totalStreams ? 'success' : 'active'}
             />
@@ -131,10 +152,10 @@ const Dashboard = () => {
         </Col>
         
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card loading={loading}>
             <Statistic
               title="在线用户"
-              value={3}
+              value={stats.onlineUsers}
               prefix={<PlayCircleOutlined />}
             />
           </Card>
@@ -144,7 +165,7 @@ const Dashboard = () => {
       <Row gutter={[16, 16]}>
         {/* 系统告警 */}
         <Col xs={24} lg={12}>
-          <Card title="系统告警" style={{ height: '400px' }}>
+          <Card title="系统告警" style={{ height: '400px' }} loading={loading}>
             <List
               dataSource={alerts}
               renderItem={item => (
@@ -169,7 +190,7 @@ const Dashboard = () => {
         
         {/* 系统活动 */}
         <Col xs={24} lg={12}>
-          <Card title="系统活动" style={{ height: '400px' }}>
+          <Card title="系统活动" style={{ height: '400px' }} loading={loading}>
             <List
               dataSource={activities}
               renderItem={item => (

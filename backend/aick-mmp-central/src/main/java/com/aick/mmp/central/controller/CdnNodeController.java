@@ -8,13 +8,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/cdn-nodes")
+@RequestMapping("/cdn-nodes")
 public class CdnNodeController {
 
     private final CdnNodeService cdnNodeService;
@@ -25,11 +26,13 @@ public class CdnNodeController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'VIEWER')")
     public ResponseEntity<Page<CdnNodeDTO>> getAllCdnNodes(Pageable pageable) {
         return ResponseEntity.ok(cdnNodeService.getAllCdnNodes(pageable));
     }
 
     @GetMapping("/region/{region}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'VIEWER')")
     public ResponseEntity<Page<CdnNodeDTO>> getCdnNodesByRegion(
             @PathVariable String region, 
             Pageable pageable) {
@@ -37,6 +40,7 @@ public class CdnNodeController {
     }
 
     @GetMapping("/status/{status}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'VIEWER')")
     public ResponseEntity<Page<CdnNodeDTO>> getCdnNodesByStatus(
             @PathVariable CdnNode.NodeStatus status, 
             Pageable pageable) {
@@ -44,17 +48,20 @@ public class CdnNodeController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'VIEWER')")
     public ResponseEntity<CdnNodeDTO> getCdnNodeById(@PathVariable Long id) {
         return ResponseEntity.ok(cdnNodeService.getCdnNodeById(id));
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CdnNodeDTO> createCdnNode(@RequestBody CdnNodeDTO cdnNodeDTO) {
         CdnNodeDTO created = cdnNodeService.createCdnNode(cdnNodeDTO);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<CdnNodeDTO> updateCdnNode(
             @PathVariable Long id, 
             @RequestBody CdnNodeDTO cdnNodeDTO) {
@@ -62,6 +69,7 @@ public class CdnNodeController {
     }
 
     @PutMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')")
     public ResponseEntity<Void> updateCdnNodeStatus(
             @PathVariable Long id,
             @RequestBody Map<String, String> statusUpdate) {
@@ -72,6 +80,7 @@ public class CdnNodeController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteCdnNode(@PathVariable Long id) {
         cdnNodeService.deleteCdnNode(id);
         return ResponseEntity.noContent().build();
@@ -86,6 +95,7 @@ public class CdnNodeController {
     }
 
     @GetMapping("/best/{region}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'VIEWER')")
     public ResponseEntity<List<CdnNodeDTO>> getBestCdnNodesForRegion(
             @PathVariable String region,
             @RequestParam(defaultValue = "3") int count) {
@@ -93,6 +103,7 @@ public class CdnNodeController {
     }
 
     @GetMapping("/{nodeId}/statistics")
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'VIEWER')")
     public ResponseEntity<Map<String, Object>> getCdnNodeStatistics(@PathVariable Long nodeId) {
         return ResponseEntity.ok(cdnNodeService.getCdnNodeStatistics(nodeId));
     }

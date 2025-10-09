@@ -24,10 +24,12 @@ public interface StreamingService {
     }
     
     default StreamSession startStream(Long cameraId) {
+        // 实现具体的启动流逻辑
         throw new UnsupportedOperationException("Not implemented yet");
     }
     
     default void stopStream(Long cameraId) {
+        // 实现具体的停止流逻辑
         throw new UnsupportedOperationException("Not implemented yet");
     }
     
@@ -40,6 +42,7 @@ public interface StreamingService {
     }
     
     default Map<String, Object> getStreamStatus(Long cameraId) {
+        // 实现获取流状态的逻辑
         throw new UnsupportedOperationException("Not implemented yet");
     }
     

@@ -1,6 +1,10 @@
+# Server configuration
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api
+
 spring:
-  profiles:
-    active: edge
   application:
     name: aick-mmp-edge-node
   
@@ -8,22 +12,16 @@ spring:
 edge:
   nodeId: ${NODE_ID:edge-node-1}
   region: ${REGION:default-region}
-  centralServerUrl: ${CENTRAL_SERVER_URL:http://localhost:8080}
+  centralServerUrl: ${CENTRAL_SERVER_URL:http://central-lb}
   heartbeatInterval: ${HEARTBEAT_INTERVAL:30}
   maxConcurrentStreams: ${MAX_CONCURRENT_STREAMS:10}
-  registryServer: ${REGISTRY_SERVER:http://localhost:8080/api/registry}
+  registryServer: ${REGISTRY_SERVER:http://central-lb/api/registry}
   
   networkMonitoring:
     intervalSeconds: ${NETWORK_MONITORING_INTERVAL:60}
     cpuThreshold: ${CPU_THRESHOLD:80.0}
     memoryThreshold: ${MEMORY_THRESHOLD:85.0}
     bandwidthThreshold: ${BANDWIDTH_THRESHOLD:80.0}
-
-# Server configuration
-server:
-  port: ${SERVER_PORT:8081}
-  servlet:
-    context-path: /api
 
 # Minimal logging
 logging:
@@ -61,8 +59,16 @@ management:
     health:
       show-details: when-authorized
 
-# Security configuration
+# 安全配置
+# ---------------------------------
+# 注意：以下安全配置中的敏感信息建议通过环境变量注入，避免在生产环境中直接明文配置
+
 security:
+  # JWT安全令牌配置
   jwt:
-    secret: ${JWT_SECRET:aick_mmp_default_edge_secret_key}
+    # 密钥配置：建议使用环境变量(JWT_SECRET)注入，如未设置则使用默认值
+    # 注意：默认值仅用于开发环境，生产环境必须设置强密钥
+    secret: ${JWT_SECRET:mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure}
+    
+    # 令牌过期时间：单位为毫秒，默认为24小时(86400000ms)
     expiration: ${JWT_EXPIRATION:86400000}

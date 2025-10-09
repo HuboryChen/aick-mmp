@@ -2,6 +2,7 @@ package com.aick.mmp.central.service.impl;
 
 import com.aick.mmp.central.dto.CameraDTO;
 import com.aick.mmp.central.dto.CameraStatusUpdateDTO;
+import com.aick.mmp.central.dto.GetCamerasRequestDTO;
 import com.aick.mmp.shared.exception.ResourceNotFoundException;
 import com.aick.mmp.shared.exception.ServiceException;
 import com.aick.mmp.shared.model.Camera;
@@ -15,10 +16,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +41,33 @@ public class CameraServiceImpl implements CameraService {
     public Page<CameraDTO> getAllCameras(Pageable pageable) {
         log.info("Fetching all cameras with pagination: {}", pageable);
         return cameraRepository.findAll(pageable)
+                .map(this::convertToDto);
+    }
+
+    @Override
+    public Page<CameraDTO> getCameras(GetCamerasRequestDTO request) {
+        log.info("Fetching cameras with request: {}", request);
+        
+        // 构建动态查询条件
+        Specification<Camera> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            
+            if (request.getLocation() != null && !request.getLocation().isEmpty()) {
+                predicates.add(criteriaBuilder.equal(root.get("location"), request.getLocation()));
+            }
+            
+            if (request.getStatus() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("status"), request.getStatus()));
+            }
+            
+            if (request.getEdgeNodeId() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("edgeNodeId"), request.getEdgeNodeId()));
+            }
+            
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+        
+        return cameraRepository.findAll(spec, request.getPageable())
                 .map(this::convertToDto);
     }
 
@@ -72,90 +103,50 @@ public class CameraServiceImpl implements CameraService {
     @Override
     @Transactional
     public CameraDTO createCamera(CameraDTO cameraDTO) {
-        log.info("Creating new camera: {}", cameraDTO.getName());
-
-        // Validate edge node exists
-        if (cameraDTO.getEdgeNodeId() != null) {
-            edgeNodeRepository.findById(cameraDTO.getEdgeNodeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Edge node not found with id: " + cameraDTO.getEdgeNodeId()));
-        }
-
-        // Check if camera with this URL already exists
-        if (cameraRepository.existsByConnectionUrl(cameraDTO.getConnectionUrl())) {
-            throw new ServiceException("Camera with this connection URL already exists");
-        }
-
-        Camera camera = convertToEntity(cameraDTO);
-        camera.setStatus(Camera.CameraStatus.CONNECTING);
-        camera.setEnabled(true);
+        log.info("Creating camera with data: {}", cameraDTO);
+        
+        Camera camera = modelMapper.map(cameraDTO, Camera.class);
+        camera.setStatus(Camera.CameraStatus.OFFLINE);
         camera.setCreatedAt(LocalDateTime.now());
         camera.setUpdatedAt(LocalDateTime.now());
-
-        Camera savedCamera = cameraRepository.save(camera);
-
-        // Attempt initial connection
-        try {
-            boolean connectionSuccessful = testCameraConnection(savedCamera.getId());
-            if (connectionSuccessful) {
-                savedCamera.setStatus(Camera.CameraStatus.ONLINE);
-                savedCamera.setLastActiveTime(LocalDateTime.now());
-                cameraRepository.save(savedCamera);
-            } else {
-                savedCamera.setStatus(Camera.CameraStatus.OFFLINE);
-                cameraRepository.save(savedCamera);
-                log.warn("Initial connection to camera failed: {}", savedCamera.getName());
-            }
-        } catch (Exception e) {
-            log.error("Error testing camera connection: {}", e.getMessage());
-            savedCamera.setStatus(Camera.CameraStatus.ERROR);
-            cameraRepository.save(savedCamera);
+        
+        // 关联边缘节点
+        if (cameraDTO.getEdgeNodeId() != null) {
+            EdgeNode edgeNode = edgeNodeRepository.findById(cameraDTO.getEdgeNodeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Edge node not found with id: " + cameraDTO.getEdgeNodeId()));
+            camera.setEdgeNodeId(edgeNode.getId());
         }
-
+        
+        Camera savedCamera = cameraRepository.save(camera);
         return convertToDto(savedCamera);
     }
 
     @Override
     @Transactional
     public CameraDTO updateCamera(Long id, CameraDTO cameraDTO) {
-        log.info("Updating camera with id: {}", id);
-
+        log.info("Updating camera with id: {} and data: {}", id, cameraDTO);
+        
         Camera existingCamera = cameraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
-
-        // Validate edge node if provided
-        if (cameraDTO.getEdgeNodeId() != null && !cameraDTO.getEdgeNodeId().equals(existingCamera.getEdgeNodeId())) {
-            edgeNodeRepository.findById(cameraDTO.getEdgeNodeId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Edge node not found with id: " + cameraDTO.getEdgeNodeId()));
-        }
-
-        // Update fields
+        
+        // 更新基本信息
         existingCamera.setName(cameraDTO.getName());
         existingCamera.setLocation(cameraDTO.getLocation());
-        existingCamera.setEdgeNodeId(cameraDTO.getEdgeNodeId());
-        existingCamera.setProtocol(cameraDTO.getProtocol());
+        existingCamera.setConnectionUrl(cameraDTO.getConnectionUrl());
         existingCamera.setResolution(cameraDTO.getResolution());
         existingCamera.setFrameRate(cameraDTO.getFrameRate());
         existingCamera.setBitrate(cameraDTO.getBitrate());
-        existingCamera.setEnabled(cameraDTO.isEnabled());
         existingCamera.setUpdatedAt(LocalDateTime.now());
-
-        // If URL changed, check for duplicates
-        if (!existingCamera.getConnectionUrl().equals(cameraDTO.getConnectionUrl())) {
-            if (cameraRepository.existsByConnectionUrl(cameraDTO.getConnectionUrl())) {
-                throw new ServiceException("Camera with this connection URL already exists");
-            }
-            existingCamera.setConnectionUrl(cameraDTO.getConnectionUrl());
-            existingCamera.setStatus(Camera.CameraStatus.CONNECTING);
+        
+        // 更新边缘节点
+        if (cameraDTO.getEdgeNodeId() != null) {
+            EdgeNode edgeNode = edgeNodeRepository.findById(cameraDTO.getEdgeNodeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Edge node not found with id: " + cameraDTO.getEdgeNodeId()));
+            existingCamera.setEdgeNodeId(edgeNode.getId());
+        } else {
+            existingCamera.setEdgeNodeId(null);
         }
-
-        // Update credentials if provided
-        if (cameraDTO.getUsername() != null) {
-            existingCamera.setUsername(cameraDTO.getUsername());
-        }
-        if (cameraDTO.getPassword() != null) {
-            existingCamera.setPassword(cameraDTO.getPassword());
-        }
-
+        
         Camera updatedCamera = cameraRepository.save(existingCamera);
         return convertToDto(updatedCamera);
     }
@@ -243,6 +234,22 @@ public class CameraServiceImpl implements CameraService {
     }
 
     @Override
+    public String startCameraStream(Long cameraId) {
+        log.info("Starting stream for camera id: {}", cameraId);
+        Camera camera = cameraRepository.findById(cameraId)
+                .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + cameraId));
+        return streamingService.startStream(camera);
+    }
+
+    @Override
+    public void stopCameraStream(Long cameraId) {
+        log.info("Stopping stream for camera id: {}", cameraId);
+        // 这里需要实现停止流的具体逻辑
+        // 由于缺少会话ID信息，暂时只是记录日志
+        throw new UnsupportedOperationException("Stop stream by camera ID not implemented yet");
+    }
+
+    @Override
     public Map<String, Object> getCameraStatistics(Long cameraId) {
         log.info("Fetching statistics for camera id: {}", cameraId);
 
@@ -264,12 +271,8 @@ public class CameraServiceImpl implements CameraService {
 
     @Override
     public List<CameraDTO> getOnlineCamerasByEdgeNode(Long edgeNodeId) {
-        log.info("Fetching online cameras for edge node id: {}", edgeNodeId);
-
-        // Verify edge node exists
-        edgeNodeRepository.findById(edgeNodeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Edge node not found with id: " + edgeNodeId));
-
+        log.info("Fetching online cameras by edge node id: {}", edgeNodeId);
+        
         List<Camera> onlineCameras = cameraRepository.findByEdgeNodeIdAndStatus(edgeNodeId, Camera.CameraStatus.ONLINE);
         return onlineCameras.stream()
                 .map(this::convertToDto)
@@ -278,8 +281,14 @@ public class CameraServiceImpl implements CameraService {
 
     @Override
     public long getCameraCountByStatus(Camera.CameraStatus status) {
-        log.info("Counting cameras with status: {}", status);
+        log.info("Fetching camera count by status: {}", status);
         return cameraRepository.countByStatus(status);
+    }
+    
+    @Override
+    public long getCameraCount() {
+        log.info("Fetching total camera count");
+        return cameraRepository.count();
     }
 
     @Override
@@ -300,10 +309,12 @@ public class CameraServiceImpl implements CameraService {
     // Helper methods
     private CameraDTO convertToDto(Camera camera) {
         CameraDTO dto = modelMapper.map(camera, CameraDTO.class);
-        // Set edge node name if available
         if (camera.getEdgeNodeId() != null) {
-            edgeNodeRepository.findById(camera.getEdgeNodeId())
-                    .ifPresent(edgeNode -> dto.setEdgeNodeName(edgeNode.getName()));
+            EdgeNode edgeNode = edgeNodeRepository.findById(camera.getEdgeNodeId()).orElse(null);
+            if (edgeNode != null) {
+                dto.setEdgeNodeId(edgeNode.getId());
+                dto.setEdgeNodeName(edgeNode.getName());
+            }
         }
         return dto;
     }
@@ -313,8 +324,18 @@ public class CameraServiceImpl implements CameraService {
     }
 
     private double calculateUptimePercentage(Camera camera) {
-        // In a real implementation, this would calculate based on historical data
-        // For now, return a placeholder value
-        return camera.getStatus() == Camera.CameraStatus.ONLINE ? 98.5 : 65.0;
+        // 简化的在线时间计算逻辑
+        if (camera.getCreatedAt() == null || camera.getLastActiveTime() == null) {
+            return 0.0;
+        }
+        
+        long totalDuration = java.time.Duration.between(camera.getCreatedAt(), LocalDateTime.now()).getSeconds();
+        long activeDuration = java.time.Duration.between(camera.getLastActiveTime(), LocalDateTime.now()).getSeconds();
+        
+        if (totalDuration <= 0) {
+            return 0.0;
+        }
+        
+        return Math.min(100.0, (activeDuration * 100.0) / totalDuration);
     }
 }

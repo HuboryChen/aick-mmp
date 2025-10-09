@@ -41,10 +41,12 @@ public class SecurityConfig {
             .authorizeRequests(authz -> authz
                 .antMatchers("/auth/**").permitAll()
                 .antMatchers("/health/**").permitAll()
-                .antMatchers("/edge-nodes").permitAll()
+                .antMatchers("/edge-nodes/register").permitAll()
                 .antMatchers("/edge-nodes/*/heartbeat").permitAll()
+                .antMatchers("/cameras/edge-node/*").permitAll()
                 .antMatchers("/actuator/**").permitAll()
                 .antMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                .antMatchers("/users/**").hasRole("ADMIN") // 用户管理接口仅允许ADMIN角色访问
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
@@ -74,11 +76,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost",
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "*"
+        ));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
+        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

@@ -43,6 +43,7 @@ public class EdgeHeartbeatServiceImpl implements EdgeHeartbeatService {
     private ScheduledExecutorService heartbeatScheduler;
     private volatile boolean isMonitoring = false;
 
+
     @PostConstruct
     public void init() {
         registerWithCentralServer();
@@ -56,27 +57,62 @@ public class EdgeHeartbeatServiceImpl implements EdgeHeartbeatService {
 
     @Override
     public boolean sendHeartbeat(HeartbeatRequest heartbeatRequest) {
-        try {
-            String centralServerUrl = edgeNodeConfig.getCentralServerUrl() + "/api/edge-nodes/" + 
-                                     edgeNodeConfig.getNodeId() + "/heartbeat";
-            
-            ResponseEntity<String> response = restTemplate.postForEntity(
-                centralServerUrl, 
-                heartbeatRequest, 
-                String.class
-            );
-            
-            if (response.getStatusCode().is2xxSuccessful()) {
-                logger.debug("Heartbeat sent successfully to central server");
-                return true;
-            } else {
-                logger.warn("Failed to send heartbeat. Status: {}", response.getStatusCode());
-                return false;
-            }
-        } catch (Exception e) {
-            logger.error("Error sending heartbeat to central server", e);
-            return false;
+        int maxRetries = 3;
+        int retryDelay = 2000; // 2秒
+
+        // 确保URL格式正确，避免多余的斜杠
+        String baseUrl = edgeNodeConfig.getCentralServerUrl();
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
         }
+
+        String centralServerUrl = baseUrl + "/api/edge-nodes/" +
+                edgeNodeConfig.getNodeId() + "/heartbeat";
+
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                logger.debug("Sending heartbeat to: {}", centralServerUrl);
+
+                // 发送心跳请求
+                ResponseEntity<String> response = restTemplate.postForEntity(
+                        centralServerUrl,
+                        heartbeatRequest,
+                        String.class
+                );
+
+                if (response.getStatusCode().is2xxSuccessful()) {
+                    logger.debug("Heartbeat sent successfully to central server");
+                    return true;
+                } else {
+                    logger.warn("Failed to send heartbeat. Status: {}", response.getStatusCode());
+                    if (response.getBody() != null) {
+                        logger.warn("Response body: {}", response.getBody());
+                    }
+                }
+            } catch (Exception e) {
+                logger.warn("Error sending heartbeat to central server, attempt {}/{}. Error: {}", 
+                           (i+1), maxRetries, e.getMessage());
+                
+                // 如果是最后一次尝试，记录详细错误信息
+                if (i == maxRetries - 1) {
+                    logger.error("Error sending heartbeat to central server. URL: " +
+                            edgeNodeConfig.getCentralServerUrl() + "/api/edge-nodes/" +
+                            edgeNodeConfig.getNodeId() + "/heartbeat", e);
+                }
+            }
+
+            // 如果不是最后一次尝试，等待后重试
+            if (i < maxRetries - 1) {
+                try {
+                    Thread.sleep(retryDelay * (i + 1)); // 指数退避
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        
+        return false;
     }
 
     @Override
@@ -256,36 +292,58 @@ public class EdgeHeartbeatServiceImpl implements EdgeHeartbeatService {
     }
 
     private void registerWithCentralServer() {
-        try {
-            // Create edge node registration data
-            Map<String, Object> registrationData = new HashMap<>();
-            registrationData.put("name", edgeNodeConfig.getNodeId());
-            registrationData.put("location", edgeNodeConfig.getRegion());
-            registrationData.put("ipAddress", getLocalIPAddress());
-            registrationData.put("port", 8081);
-            registrationData.put("maxCameraSupport", edgeNodeConfig.getMaxConcurrentStreams());
-            registrationData.put("currentCameraCount", 0);
-            registrationData.put("enabled", true);
-            
-            String centralServerUrl = edgeNodeConfig.getCentralServerUrl() + "/api/edge-nodes";
-            
+        int maxRetries = 5;
+        int retryDelay = 5000; // 5秒
+
+        // Create edge node registration data
+        Map<String, Object> registrationData = new HashMap<>();
+        registrationData.put("name", edgeNodeConfig.getNodeId());
+        registrationData.put("location", edgeNodeConfig.getRegion());
+        registrationData.put("ipAddress", getLocalIPAddress());
+        registrationData.put("port", 8081);
+        registrationData.put("maxCameraSupport", edgeNodeConfig.getMaxConcurrentStreams());
+        registrationData.put("currentCameraCount", 0);
+        registrationData.put("enabled", true);
+
+        String centralServerUrl = edgeNodeConfig.getCentralServerUrl() + "/api/edge-nodes/register";
+
+        for (int i = 0; i < maxRetries; i++) {
             try {
+                logger.info("Registering edge node with central server. POST {}", centralServerUrl);
                 ResponseEntity<String> response = restTemplate.postForEntity(
-                    centralServerUrl, 
-                    registrationData, 
-                    String.class
+                        centralServerUrl,
+                        registrationData,
+                        String.class
                 );
-                
+
                 if (response.getStatusCode().is2xxSuccessful()) {
                     logger.info("Successfully registered edge node with central server");
+                    return; // 成功后直接返回
                 } else {
                     logger.warn("Failed to register edge node. Status: {}", response.getStatusCode());
+                    if (response.getBody() != null) {
+                        logger.warn("Response body: {}", response.getBody());
+                    }
                 }
             } catch (Exception e) {
-                logger.warn("Could not register with central server, will try heartbeat anyway: {}", e.getMessage());
+                logger.warn("Could not register with central server, attempt {}/{}. Error: {}", 
+                           (i+1), maxRetries, e.getMessage());
+                
+                // 如果是最后一次尝试，记录详细错误信息
+                if (i == maxRetries - 1) {
+                    logger.error("Failed to register with central server after {} attempts", maxRetries, e);
+                }
             }
-        } catch (Exception e) {
-            logger.error("Error during edge node registration", e);
+
+            // 如果不是最后一次尝试，等待后重试
+            if (i < maxRetries - 1) {
+                try {
+                    Thread.sleep(retryDelay * (i + 1)); // 指数退避
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
         }
     }
 

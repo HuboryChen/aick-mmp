@@ -1,75 +1,40 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Layout, theme, Spin, message } from 'antd';
-import {
-  MenuUnfoldOutlined,
-  MenuFoldOutlined,
-  VideoCameraOutlined,
-  HistoryOutlined,
-  SettingOutlined,
-  UserOutlined,
-  BellOutlined,
-  LogoutOutlined
-} from '@ant-design/icons';
-import axiosInstance from './utils/axios';
-import Cookies from 'js-cookie';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Layout, Spin } from 'antd';
+import { useAuth } from './hooks/useAuth';
+import Sidebar from './components/Sidebar';
+import Header from './components/Header';
+import PrivateRoute from './components/PrivateRoute';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import VideoWall from './pages/VideoWall';
 import CameraManagement from './pages/CameraManagement';
 import EdgeNodeManagement from './pages/EdgeNodeManagement';
+import RegionManagement from './pages/RegionManagement';
 import Playback from './pages/Playback';
-import SystemSettings from './pages/SystemSettings';
-import UserProfile from './pages/UserProfile';
-import Login from './pages/Login';
-import PrivateRoute from './components/PrivateRoute';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
+import Settings from './pages/SystemSettings';
+import Profile from './pages/UserProfile';
 import './App.css';
 
 const { Content } = Layout;
 
-const App = () => {
+function App() {
   const [collapsed, setCollapsed] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [userInfo, setUserInfo] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-
-  const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
-
-  // Check if user is logged in
-  React.useEffect(() => {
-    const checkAuth = async () => {
-      const token = Cookies.get('token');
-      if (token) {
-        try {
-          setLoading(true);
-          const response = await axiosInstance.get('/api/auth/me');
-          setUserInfo(response.data);
-        } catch (error) {
-          message.error('Session expired, please login again');
-          Cookies.remove('token');
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    checkAuth();
-  }, []);
+  const { userInfo, loading, login, logout } = useAuth();
+  const isAuthenticated = !!userInfo;
 
   const toggle = () => {
     setCollapsed(!collapsed);
   };
 
-  const handleLogout = () => {
-    Cookies.remove('token');
-    setUserInfo(null);
-    message.success('Logged out successfully');
-  };
-
   if (loading) {
     return (
-      <div className="loading-container">
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
         <Spin size="large" />
       </div>
     );
@@ -77,47 +42,43 @@ const App = () => {
 
   return (
     <Router>
-      {userInfo ? (
-        <Layout style={{ minHeight: '100vh' }}>
-          <Sidebar collapsed={collapsed} />
-          <Layout>
-            <Header
-              collapsed={collapsed}
+      <Layout style={{ minHeight: '100vh' }}>
+        {isAuthenticated && <Sidebar collapsed={collapsed} />}
+        <Layout className={isAuthenticated ? (collapsed ? 'content-collapsed' : 'content-expanded') : ''}>
+          {isAuthenticated && (
+            <Header 
+              collapsed={collapsed} 
               toggle={toggle}
               userInfo={userInfo}
-              notifications={notifications}
-              onLogout={handleLogout}
+              notifications={[]}
+              onLogout={logout}
             />
-            <Content
-              style={{
-                margin: '24px 16px',
-                padding: 24,
-                minHeight: 280,
-                background: colorBgContainer,
-                borderRadius: borderRadiusLG,
-              }}
-            >
+          )}
+          <Content style={{ 
+            margin: isAuthenticated ? '64px 16px 0' : 0,
+            marginTop: isAuthenticated ? 64 : 0
+          }}>
+            <div className="content-container">
               <Routes>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/video-wall" element={<VideoWall />} />
-                <Route path="/cameras" element={<CameraManagement />} />
-                <Route path="/edge-nodes" element={<EdgeNodeManagement />} />
-                <Route path="/playback" element={<Playback />} />
-                <Route path="/settings" element={<SystemSettings />} />
-                <Route path="/profile" element={<UserProfile />} />
-                <Route path="/" element={<Navigate to="/dashboard" />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/" element={<PrivateRoute />}>
+                  <Route index element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/video-wall" element={<VideoWall />} />
+                  <Route path="/cameras" element={<CameraManagement />} />
+                  <Route path="/edge-nodes" element={<EdgeNodeManagement />} />
+                  <Route path="/regions" element={<RegionManagement />} />
+                  <Route path="/playback" element={<Playback />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
               </Routes>
-            </Content>
-          </Layout>
+            </div>
+          </Content>
         </Layout>
-      ) : (
-        <Routes>
-          <Route path="/login" element={<Login setUserInfo={setUserInfo} />} />
-          <Route path="/*" element={<Navigate to="/login" />} />
-        </Routes>
-      )}
+      </Layout>
     </Router>
   );
-};
+}
 
 export default App;

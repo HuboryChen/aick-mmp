@@ -11,7 +11,7 @@ import {
 const { Header: AntHeader } = Layout;
 const { Text } = Typography;
 
-const Header = ({ collapsed, toggle, userInfo, notifications, onLogout }) => {
+const Header = ({ collapsed, toggle, userInfo, notifications = [], onLogout }) => {
   const userMenuItems = [
     {
       key: 'profile',
@@ -29,7 +29,7 @@ const Header = ({ collapsed, toggle, userInfo, notifications, onLogout }) => {
     }
   ];
 
-  const notificationMenuItems = notifications.map((notification, index) => ({
+  const notificationMenuItems = (notifications || []).map((notification, index) => ({
     key: index,
     label: (
       <div style={{ maxWidth: '200px' }}>
@@ -51,7 +51,12 @@ const Header = ({ collapsed, toggle, userInfo, notifications, onLogout }) => {
         alignItems: 'center',
         justifyContent: 'space-between',
         marginLeft: collapsed ? 80 : 200,
-        transition: 'margin-left 0.2s'
+        transition: 'margin-left 0.2s',
+        position: 'fixed',
+        right: 0,
+        top: 0,
+        zIndex: 999,
+        width: `calc(100% - ${collapsed ? 80 : 200}px)`,
       }}
     >
       <Button
@@ -71,7 +76,7 @@ const Header = ({ collapsed, toggle, userInfo, notifications, onLogout }) => {
           trigger={['click']}
           placement="bottomRight"
         >
-          <Badge count={notifications.length} offset={[-3, 3]}>
+          <Badge count={(notifications || []).length} offset={[-3, 3]}>
             <Button
               type="text"
               icon={<BellOutlined />}

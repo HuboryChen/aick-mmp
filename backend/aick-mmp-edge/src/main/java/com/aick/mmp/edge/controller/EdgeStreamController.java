@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/edge/streams")
+@RequestMapping("/edge/streams")
 @Tag(name = "Edge Stream Management", description = "Stream management operations on edge nodes")
 @Profile("edge")
 @RequiredArgsConstructor

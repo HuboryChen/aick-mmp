@@ -1,0 +1,37 @@
+# MediaMTX Configuration
+# 用于接收OBS推流并提供RTSP/RTMP流媒体服务
+
+# HTTP API设置
+api: yes
+apiAddress: :8888
+apiEncryption: false
+apiServerKey: 
+apiServerCert: 
+apiAllowOrigin: "*"
+
+# RTSP设置
+rtsp: yes
+rtspAddress: :8554
+rtspTransports: [tcp, udp]
+
+# RTMP设置
+rtmp: yes
+rtmpAddress: :1935
+
+# HLS设置
+hls: no  # 如果不需要HLS，可以关闭以减少资源占用
+
+# WebRTC设置
+webrtc: no  # 如果不需要WebRTC，可以关闭以减少资源占用
+
+# SRT设置
+srt: no  # 如果不需要SRT，可以关闭以减少资源占用
+
+# 路径设置
+paths:
+  all:
+    # 允许所有路径，并设置一些通用参数
+
+
+
+

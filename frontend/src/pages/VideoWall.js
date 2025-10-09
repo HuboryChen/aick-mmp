@@ -1,23 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, Row, Col, Card, Select, Button, Slider, Dropdown, Menu, Badge, Spin, message, Modal } from 'antd';
-import {
-  VideoCameraOutlined,
-  LayoutOutlined,
-  FullscreenOutlined,
-  FullscreenExitOutlined,
-  ReloadOutlined,
-  PlayCircleOutlined,
-  PauseCircleOutlined,
-  ZoomInOutlined,
-  SettingOutlined,
-  MoreOutlined,
-  EyeOutlined
-} from '@ant-design/icons';
+import { Layout, Card, List, Button, message, Spin, Input, Row, Col, Checkbox, Slider, Select, 
+         Modal, Dropdown, Menu, Badge } from 'antd';
+import { VideoCameraOutlined, PlayCircleOutlined, PauseCircleOutlined, 
+         ZoomInOutlined, SettingOutlined, EyeOutlined, LayoutOutlined, MoreOutlined,
+         ReloadOutlined, FullscreenOutlined, FullscreenExitOutlined } from '@ant-design/icons';
 import classNames from 'classnames';
-import axios from 'axios';
+import { cameraApi } from '../utils/api';
 import Cookies from 'js-cookie';
 import CameraStream from '../components/CameraStream';
-import CameraSelector from '../components/CameraSelector';
 import SplitScreenController from '../components/SplitScreenController';
 import VideoQualityController from '../components/VideoQualityController';
 import './VideoWall.css';
@@ -67,12 +57,12 @@ const VideoWall = () => {
       // If we have fewer cameras than layout allows, fill with available cameras
       const needed = parseInt(layout) - selectedCameras.length;
       const availableCameras = cameras.filter(cam => 
-        !selectedCameras.some(selected => selected.id === cam.id)
+        !selectedCameras.some(selected => selected && selected.id === cam.id)
       );
       const additional = availableCameras.slice(0, needed);
       setSelectedCameras([...selectedCameras, ...additional]);
     }
-  }, [layout, cameras]);
+  }, [layout, cameras, selectedCameras]);
 
   // Handle fullscreen toggle
   useEffect(() => {
@@ -90,13 +80,12 @@ const VideoWall = () => {
   const fetchCameras = async () => {
     try {
       setLoading(true);
-      const token = Cookies.get('token');
-      const response = await axios.get('/api/cameras?status=ONLINE', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setCameras(response.data.content);
+      const response = await cameraApi.getCameras({ status: 'ONLINE' });
+      setCameras(response.data.content || []);
     } catch (error) {
+      console.error('Failed to fetch cameras:', error);
       message.error('Failed to fetch cameras: ' + (error.response?.data?.message || error.message));
+      setCameras([]);
     } finally {
       setLoading(false);
     }
@@ -234,7 +223,7 @@ const VideoWall = () => {
                   </div>
                   <div className="video-container">
                     <CameraStream
-                      cameraId={selectedCameras[index]?.id}
+                      camera={selectedCameras[index]}
                       streamUrl={getStreamUrl(selectedCameras[index]?.id)}
                       onStatusUpdate={(status, stats) => handleStatusUpdate(selectedCameras[index]?.id, status, stats)}
                       quality={quality}
@@ -254,12 +243,32 @@ const VideoWall = () => {
                 <Card
                   className="empty-video-card"
                   bordered={false}
-                  bodyStyle={{ padding: 0, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onClick={() => openCameraSelector(index)}
+                  bodyStyle={{ padding: '16px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                   <div className="empty-video-placeholder">
-                    <VideoCameraOutlined className="empty-icon" />
-                    <p>Click to select camera</p>
+                    <Select
+                      showSearch
+                      placeholder="Select a camera"
+                      optionFilterProp="children"
+                      onChange={(value) => {
+                        const camera = cameras.find(cam => cam.id === value);
+                        if (camera) {
+                          handleCameraChange(index, camera);
+                        }
+                      }}
+                      filterOption={(input, option) =>
+                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      }
+                      style={{ width: '100%' }}
+                    >
+                      {cameras
+                        .filter(cam => !selectedCameras.some(selected => selected && selected.id === cam.id))
+                        .map(camera => (
+                          <Option key={camera.id} value={camera.id}>
+                            {camera.name} ({camera.location || 'No location'})
+                          </Option>
+                        ))}
+                    </Select>
                   </div>
                 </Card>
               )}
@@ -349,7 +358,7 @@ const VideoWall = () => {
         </Content>
       </Layout>
 
-      {/* Camera Selector Modal */}
+      {/* Camera Selector Modal - Modified to use dropdown instead of CameraSelector component */}
       <Modal
         title="Select Camera"
         open={showCameraSelector}
@@ -358,17 +367,38 @@ const VideoWall = () => {
           setEditingCameraIndex(-1);
         }}
         footer={null}
-        width={800}
+        width={400}
         destroyOnClose
       >
-        <CameraSelector
-          cameras={cameras.filter(cam => 
-            !selectedCameras.some(selected => selected.id === cam.id) || 
-            selectedCameras[editingCameraIndex]?.id === cam.id
-          )}
-          onSelect={(camera) => handleCameraChange(editingCameraIndex, camera)}
-          selectedCameraId={selectedCameras[editingCameraIndex]?.id}
-        />
+        <div style={{ padding: '20px' }}>
+          <Select
+            showSearch
+            placeholder="Select a camera"
+            optionFilterProp="children"
+            onChange={(value) => {
+              const camera = cameras.find(cam => cam.id === value);
+              if (camera) {
+                handleCameraChange(editingCameraIndex, camera);
+              }
+            }}
+            filterOption={(input, option) =>
+              option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+            }
+            style={{ width: '100%' }}
+            size="large"
+          >
+            {cameras
+              .filter(cam => 
+                !selectedCameras.some(selected => selected && selected.id === cam.id) || 
+                (selectedCameras[editingCameraIndex] && selectedCameras[editingCameraIndex].id === cam.id)
+              )
+              .map(camera => (
+                <Option key={camera.id} value={camera.id}>
+                  {camera.name} ({camera.location || 'No location'})
+                </Option>
+              ))}
+          </Select>
+        </div>
       </Modal>
     </div>
   );

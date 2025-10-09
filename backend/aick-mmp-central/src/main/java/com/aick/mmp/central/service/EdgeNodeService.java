@@ -15,6 +15,7 @@ public interface EdgeNodeService {
     Page<EdgeNodeDTO> getEdgeNodesByStatus(EdgeNode.NodeStatus status, Pageable pageable);
     EdgeNodeDTO getEdgeNodeById(Long id);
     EdgeNodeDTO createEdgeNode(EdgeNodeDTO edgeNodeDTO);
+    EdgeNodeDTO registerEdgeNode(EdgeNodeDTO edgeNodeDTO);
     EdgeNodeDTO updateEdgeNode(Long id, EdgeNodeDTO edgeNodeDTO);
     void updateEdgeNodeStatus(Long id, EdgeNodeStatusUpdateDTO statusUpdateDTO);
     void updateEdgeNodeCredentials(Long id, String username, String password);
@@ -24,6 +25,7 @@ public interface EdgeNodeService {
     Map<String, Object> getEdgeNodeStatistics(Long nodeId);
     List<EdgeNodeDTO> getOnlineEdgeNodes();
     long getEdgeNodeCountByStatus(EdgeNode.NodeStatus status);
+    long getEdgeNodeCount(); // 添加获取所有边缘节点数量的方法
     boolean testEdgeNodeConnection(Long nodeId);
     void restartEdgeNodeService(Long nodeId);
 }

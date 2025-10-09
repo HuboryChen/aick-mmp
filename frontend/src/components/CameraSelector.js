@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, List, Card, Tag, Button, Input, Space, Typography } from 'antd';
-import { VideoCameraOutlined, SearchOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { List, Card, Tag, Input, Typography } from 'antd';
+import { VideoCameraOutlined, SearchOutlined, CheckOutlined } from '@ant-design/icons';
 
 const { Search } = Input;
 const { Text } = Typography;
 
-const CameraSelector = ({ visible, cameras, selectedCameras, onSelect, onCancel }) => {
+const CameraSelector = ({ cameras, selectedCameras, onSelect, onCancel }) => {
   const [filteredCameras, setFilteredCameras] = useState([]);
   const [searchText, setSearchText] = useState('');
 
@@ -13,7 +13,7 @@ const CameraSelector = ({ visible, cameras, selectedCameras, onSelect, onCancel 
     if (cameras) {
       const filtered = cameras.filter(camera => 
         camera.name.toLowerCase().includes(searchText.toLowerCase()) ||
-        camera.location.toLowerCase().includes(searchText.toLowerCase())
+        (camera.location && camera.location.toLowerCase().includes(searchText.toLowerCase()))
       );
       setFilteredCameras(filtered);
     }
@@ -28,7 +28,7 @@ const CameraSelector = ({ visible, cameras, selectedCameras, onSelect, onCancel 
   };
 
   const isSelected = (cameraId) => {
-    return selectedCameras.some(camera => camera && camera.id === cameraId);
+    return selectedCameras && selectedCameras.some(camera => camera && camera.id === cameraId);
   };
 
   const getStatusColor = (status) => {
@@ -50,14 +50,7 @@ const CameraSelector = ({ visible, cameras, selectedCameras, onSelect, onCancel 
   };
 
   return (
-    <Modal
-      title="选择摄像头"
-      open={visible}
-      onCancel={onCancel}
-      footer={null}
-      width={600}
-      bodyStyle={{ maxHeight: '60vh', overflow: 'auto' }}
-    >
+    <div>
       <div style={{ marginBottom: '16px' }}>
         <Search
           placeholder="搜索摄像头名称或位置"
@@ -91,7 +84,7 @@ const CameraSelector = ({ visible, cameras, selectedCameras, onSelect, onCancel 
                   right: '8px',
                   zIndex: 1
                 }}>
-                  <CheckCircleOutlined style={{ color: '#1890ff', fontSize: '16px' }} />
+                  <CheckOutlined style={{ color: '#1890ff', fontSize: '16px', backgroundColor: 'white', borderRadius: '50%' }} />
                 </div>
               )}
               
@@ -108,11 +101,11 @@ const CameraSelector = ({ visible, cameras, selectedCameras, onSelect, onCancel 
                 description={
                   <div>
                     <Text type="secondary" style={{ fontSize: '12px' }}>
-                      {camera.location}
+                      {camera.location || '未指定位置'}
                     </Text>
                     <br />
                     <Text type="secondary" style={{ fontSize: '11px' }}>
-                      {camera.resolution} | {camera.protocol}
+                      {camera.resolution || '未知分辨率'} | {camera.protocol || '未知协议'}
                     </Text>
                   </div>
                 }
@@ -132,7 +125,7 @@ const CameraSelector = ({ visible, cameras, selectedCameras, onSelect, onCancel 
           <div>没有找到匹配的摄像头</div>
         </div>
       )}
-    </Modal>
+    </div>
   );
 };
 

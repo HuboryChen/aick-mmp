@@ -13,7 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/edge/heartbeat")
+@RequestMapping("/edge/heartbeat")
 @Tag(name = "Edge Heartbeat", description = "Edge node heartbeat management")
 @Profile("edge")
 public class EdgeHeartbeatController {

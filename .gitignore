@@ -4,6 +4,7 @@ node_modules
 # IDE directories
 .idea/
 .vscode/
+.qoder/
 
 # Backend compiled files
 backend/target/

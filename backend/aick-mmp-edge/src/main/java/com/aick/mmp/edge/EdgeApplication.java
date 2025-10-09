@@ -45,7 +45,7 @@ public class EdgeApplication {
 
     public static void main(String[] args) {
         // Set the active profile to edge if not already set
-        System.setProperty("spring.profiles.active", "edge");
+//        System.setProperty("spring.profiles.active", "edge");
         
         log.info("Starting AICK-MMP Edge Node Application");
         SpringApplication.run(EdgeApplication.class, args);
