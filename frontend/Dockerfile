@@ -42,7 +42,7 @@ RUN echo "server { \
         try_files \$uri \$uri/ /index.html; \
     } \
     location /api/ { \
-        proxy_pass http://central-lb/api/; \
+        proxy_pass http://central-lb/; \
         proxy_set_header Host \$host; \
         proxy_set_header X-Real-IP \$remote_addr; \
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \

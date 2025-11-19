@@ -208,7 +208,7 @@ services:
       REGION: region-a
       SERVER_PORT: 8080
       CENTRAL_SERVER_URL: http://central-lb
-      REGISTRY_SERVER: http://central-lb/api/registry
+      REGISTRY_SERVER: http://central-lb
       HEARTBEAT_INTERVAL: 30
       JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
     volumes:
@@ -246,7 +246,7 @@ services:
 #      REGION: region-a
 #      SERVER_PORT: 8080
 #      CENTRAL_SERVER_URL: http://central-lb
-#      REGISTRY_SERVER: http://central-lb/api/registry
+#      REGISTRY_SERVER: http://central-lb
 #      HEARTBEAT_INTERVAL: 30
 #      JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
 #    volumes:

@@ -28,8 +28,10 @@ export const edgeNodeApi = {
   updateEdgeNode: (id, node) => axios.put(`/edge-nodes/${id}`, node),
   deleteEdgeNode: (id) => axios.delete(`/edge-nodes/${id}`),
   updateStatus: (id, status) => axios.patch(`/edge-nodes/${id}/status`, { status }),
-  register: (nodeInfo) => axios.post('/registry/edge-nodes', nodeInfo),
-  heartbeat: (nodeId, metrics) => axios.post(`/registry/edge-nodes/${nodeId}/heartbeat`, metrics),
+  register: (nodeInfo) => axios.post('/edge-nodes/register', nodeInfo),
+  heartbeat: (nodeId, metrics) => axios.post(`/edge-nodes/${nodeId}/heartbeat`, metrics),
+  testConnection: (id) => axios.post(`/edge-nodes/${id}/test-connection`),
+  restartNode: (id) => axios.post(`/edge-nodes/${id}/restart`),
 };
 
 // 流媒体管理相关API
