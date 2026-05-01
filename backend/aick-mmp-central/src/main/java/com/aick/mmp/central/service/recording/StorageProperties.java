@@ -53,6 +53,22 @@ public class StorageProperties {
     private int maxDownloadBandwidthMB = 10;
 
     /**
+     * 是否启用清理服务
+     */
+    private boolean enabled = true;
+
+    /**
+     * 是否启用清理服务
+     */
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    /**
      * 获取实际存储路径
      */
     public String getStoragePath(String date, Long cameraId) {

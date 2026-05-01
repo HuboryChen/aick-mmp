@@ -1,5 +1,7 @@
 package com.aick.mmp.central.service.recording;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
@@ -16,6 +18,8 @@ import java.util.Optional;
  */
 @Service
 public class FileStorageService {
+
+    private static final Logger log = LoggerFactory.getLogger(FileStorageService.class);
 
     private final StorageProperties storageProperties;
 
@@ -148,5 +152,54 @@ public class FileStorageService {
      */
     public String getDatePath(LocalDate date) {
         return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+    }
+
+    /**
+     * 获取磁盘总空间 (字节)
+     */
+    public long getTotalDiskSpace() {
+        try {
+            java.io.File root = new java.io.File(storageProperties.getLocalPath());
+            if (!root.exists()) {
+                // 如果目录不存在，使用根目录
+                root = new java.io.File("/");
+            }
+            return root.getTotalSpace();
+        } catch (Exception e) {
+            log.error("获取磁盘总空间失败", e);
+            return 0;
+        }
+    }
+
+    /**
+     * 获取磁盘已使用空间 (字节)
+     */
+    public long getUsedDiskSpace() {
+        try {
+            java.io.File root = new java.io.File(storageProperties.getLocalPath());
+            if (!root.exists()) {
+                return 0;
+            }
+            return root.getTotalSpace() - root.getFreeSpace();
+        } catch (Exception e) {
+            log.error("获取磁盘已使用空间失败", e);
+            return 0;
+        }
+    }
+
+    /**
+     * 获取磁盘可用空间 (字节)
+     */
+    public long getAvailableDiskSpace() {
+        try {
+            java.io.File root = new java.io.File(storageProperties.getLocalPath());
+            if (!root.exists()) {
+                return 0;
+            }
+            return root.getUsableSpace();
+        } catch (Exception e) {
+            log.error("获取磁盘可用空间失败", e);
+            return 0;
+        }
     }
 }
