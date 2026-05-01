@@ -26,7 +26,7 @@ public class CameraController {
     private final CameraService cameraService;
 
     @GetMapping
-    // @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR')") // 暂时注释掉以便测试
+    @PreAuthorize("hasAnyRole('ADMIN', 'OPERATOR', 'VIEWER')")
     public ResponseEntity<Page<CameraDTO>> getAllCameras(
             @RequestParam(required = false) Long regionId,
             Pageable pageable) {

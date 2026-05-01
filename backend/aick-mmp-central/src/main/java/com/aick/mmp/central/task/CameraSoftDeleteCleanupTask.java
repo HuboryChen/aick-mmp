@@ -4,6 +4,7 @@ import com.aick.mmp.central.repository.CameraRepository;
 import com.aick.mmp.shared.model.Camera;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,20 +24,21 @@ public class CameraSoftDeleteCleanupTask {
     private final CameraRepository cameraRepository;
 
     /**
-     * 软删除保留天数
+     * 软删除保留天数（可配置）
      */
-    private static final int RETENTION_DAYS = 30;
+    @Value("${camera.cleanup.retention-days:30}")
+    private int retentionDays;
 
     /**
      * 每日凌晨 2:00 执行清理任务
-     * 删除 30 天前软删除的摄像头
+     * 删除超过保留期限软删除的摄像头
      */
-    @Scheduled(cron = "0 0 2 * * ?")
+    @Scheduled(cron = "${camera.cleanup.cron:0 0 2 * * ?}")
     @Transactional
     public void cleanupSoftDeletedCameras() {
-        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(RETENTION_DAYS);
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(retentionDays);
 
-        log.info("[清理任务] 开始清理 {} 天前软删除的摄像头", RETENTION_DAYS);
+        log.info("[清理任务] 开始清理 {} 天前软删除的摄像头", retentionDays);
 
         // 查询所有已删除的摄像头
         List<Camera> deletedCameras = cameraRepository.findAllDeleted();
@@ -62,14 +64,15 @@ public class CameraSoftDeleteCleanupTask {
     /**
      * 手动触发清理（供管理员接口调用）
      *
-     * @param retentionDays 保留天数（默认 30 天）
+     * @param customRetentionDays 自定义保留天数（可选）
      * @return 清理的摄像头数量
      */
     @Transactional
-    public int manualCleanup(int retentionDays) {
-        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(retentionDays);
+    public int manualCleanup(Integer customRetentionDays) {
+        int days = customRetentionDays != null ? customRetentionDays : retentionDays;
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(days);
 
-        log.info("[手动清理] 开始清理 {} 天前软删除的摄像头", retentionDays);
+        log.info("[手动清理] 开始清理 {} 天前软删除的摄像头", days);
 
         List<Camera> deletedCameras = cameraRepository.findAllDeleted();
         List<Camera> expiredCameras = deletedCameras.stream()
