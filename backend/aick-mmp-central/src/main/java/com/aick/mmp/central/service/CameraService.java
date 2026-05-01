@@ -23,14 +23,26 @@ public interface CameraService {
     void updateCameraResolution(Long id, String resolution);
     void updateCameraCredentials(Long id, String username, String password);
     void deleteCamera(Long id);
+    void batchDeleteCameras(List<Long> cameraIds);
+    void batchUpdateEdgeNode(List<Long> cameraIds, Long edgeNodeId);
     String getCameraStreamUrl(Long cameraId);
     Map<String, Object> getCameraStatistics(Long cameraId);
     List<CameraDTO> getOnlineCamerasByEdgeNode(Long edgeNodeId);
     long getCameraCountByStatus(Camera.CameraStatus status);
-    long getCameraCount(); // 添加获取所有摄像头数量的方法
+    long getCameraCount();
     boolean testCameraConnection(Long cameraId);
-    
+
     // 添加流媒体相关方法
     String startCameraStream(Long cameraId);
     void stopCameraStream(Long cameraId);
+    
+    // 负载均衡分配相关方法
+    Long selectOptimalEdgeNode(CameraDTO cameraDTO);
+    void autoAssignCamerasToEdgeNodes();
+
+    // 软删除相关方法
+    CameraDTO restoreCamera(Long id);
+    void forceDeleteCamera(Long id);
+    List<CameraDTO> getAllOnlineCameras();
+    List<CameraDTO> getDeletedCameras();
 }
