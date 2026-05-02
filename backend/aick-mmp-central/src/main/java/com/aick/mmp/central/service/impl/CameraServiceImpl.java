@@ -110,7 +110,8 @@ public class CameraServiceImpl implements CameraService {
         // 如果指定了边缘节点，增加该节点的摄像头计数
         if (camera.getEdgeNodeId() != null) {
             edgeNodeRepository.findById(camera.getEdgeNodeId()).ifPresent(node -> {
-                node.setCurrentCameraCount(node.getCurrentCameraCount() + 1);
+                Integer currentCount = node.getCurrentCameraCount();
+                node.setCurrentCameraCount(currentCount == null ? 1 : currentCount + 1);
                 edgeNodeRepository.save(node);
             });
         }
@@ -148,14 +149,16 @@ public class CameraServiceImpl implements CameraService {
             // 减少原节点的计数
             if (existingCamera.getEdgeNodeId() != null) {
                 edgeNodeRepository.findById(existingCamera.getEdgeNodeId()).ifPresent(node -> {
-                    node.setCurrentCameraCount(Math.max(0, node.getCurrentCameraCount() - 1));
+                    Integer currentCount = node.getCurrentCameraCount();
+                    node.setCurrentCameraCount(currentCount == null ? 0 : Math.max(0, currentCount - 1));
                     edgeNodeRepository.save(node);
                 });
             }
 
             // 增加新节点的计数
             edgeNodeRepository.findById(cameraDTO.getEdgeNodeId()).ifPresent(node -> {
-                node.setCurrentCameraCount(node.getCurrentCameraCount() + 1);
+                Integer currentCount = node.getCurrentCameraCount();
+                node.setCurrentCameraCount(currentCount == null ? 1 : currentCount + 1);
                 edgeNodeRepository.save(node);
             });
         }
@@ -180,7 +183,8 @@ public class CameraServiceImpl implements CameraService {
         // 减少边缘节点的摄像头计数
         if (camera.getEdgeNodeId() != null) {
             edgeNodeRepository.findById(camera.getEdgeNodeId()).ifPresent(node -> {
-                node.setCurrentCameraCount(Math.max(0, node.getCurrentCameraCount() - 1));
+                Integer currentCount = node.getCurrentCameraCount();
+                node.setCurrentCameraCount(currentCount == null ? 0 : Math.max(0, currentCount - 1));
                 edgeNodeRepository.save(node);
             });
         }
@@ -298,7 +302,8 @@ public class CameraServiceImpl implements CameraService {
         // 如果有边缘节点，恢复节点计数
         if (camera.getEdgeNodeId() != null) {
             edgeNodeRepository.findById(camera.getEdgeNodeId()).ifPresent(node -> {
-                node.setCurrentCameraCount(node.getCurrentCameraCount() + 1);
+                Integer currentCount = node.getCurrentCameraCount();
+                node.setCurrentCameraCount(currentCount == null ? 1 : currentCount + 1);
                 edgeNodeRepository.save(node);
             });
         }
@@ -320,7 +325,8 @@ public class CameraServiceImpl implements CameraService {
         // 减少边缘节点的摄像头计数
         if (camera.getEdgeNodeId() != null) {
             edgeNodeRepository.findById(camera.getEdgeNodeId()).ifPresent(node -> {
-                node.setCurrentCameraCount(Math.max(0, node.getCurrentCameraCount() - 1));
+                Integer currentCount = node.getCurrentCameraCount();
+                node.setCurrentCameraCount(currentCount == null ? 0 : Math.max(0, currentCount - 1));
                 edgeNodeRepository.save(node);
             });
         }
@@ -553,7 +559,8 @@ public class CameraServiceImpl implements CameraService {
                 // 减少原节点计数
                 if (camera.getEdgeNodeId() != null) {
                     edgeNodeRepository.findById(camera.getEdgeNodeId()).ifPresent(node -> {
-                        node.setCurrentCameraCount(Math.max(0, node.getCurrentCameraCount() - 1));
+                        Integer currentCount = node.getCurrentCameraCount();
+                        node.setCurrentCameraCount(currentCount == null ? 0 : Math.max(0, currentCount - 1));
                         edgeNodeRepository.save(node);
                     });
                 }
@@ -565,7 +572,8 @@ public class CameraServiceImpl implements CameraService {
                 
                 // 增加新节点计数
                 edgeNodeRepository.findById(edgeNodeId).ifPresent(node -> {
-                    node.setCurrentCameraCount(node.getCurrentCameraCount() + 1);
+                    Integer currentCount = node.getCurrentCameraCount();
+                    node.setCurrentCameraCount(currentCount == null ? 1 : currentCount + 1);
                     edgeNodeRepository.save(node);
                 });
             } catch (Exception e) {
