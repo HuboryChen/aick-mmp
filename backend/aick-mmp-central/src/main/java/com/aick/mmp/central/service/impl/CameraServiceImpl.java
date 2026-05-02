@@ -137,7 +137,9 @@ public class CameraServiceImpl implements CameraService {
         existingCamera.setBitrate(cameraDTO.getBitrate());
         existingCamera.setCompression(cameraDTO.getCompression());
         existingCamera.setAudioEnabled(cameraDTO.getAudioEnabled());
-        existingCamera.setStatus(cameraDTO.getStatus());
+        if (cameraDTO.getStatus() != null) {
+            existingCamera.setStatus(cameraDTO.getStatus());
+        }
         existingCamera.setRegionId(cameraDTO.getRegionId());
         existingCamera.setUpdatedAt(LocalDateTime.now());
 
@@ -190,7 +192,7 @@ public class CameraServiceImpl implements CameraService {
         Camera camera = cameraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
 
-        Camera.CameraStatus newStatus = statusUpdate.getStatus();
+        Camera.CameraStatus newStatus = Camera.CameraStatus.valueOf(statusUpdate.getStatus());
         camera.setStatus(newStatus);
         camera.setUpdatedAt(LocalDateTime.now());
 
@@ -202,6 +204,7 @@ public class CameraServiceImpl implements CameraService {
     }
 
     @Override
+    @Transactional
     public String startCameraStream(Long id) {
         log.info("Starting stream for camera with id: {}", id);
         Camera camera = cameraRepository.findById(id)
@@ -212,22 +215,52 @@ public class CameraServiceImpl implements CameraService {
             throw new ServiceException("Camera does not have a valid connection URL");
         }
 
-        // 检查摄像头是否在线
-        if (camera.getStatus() != Camera.CameraStatus.ONLINE) {
-            throw new ServiceException("Camera is not online. Current status: " + camera.getStatus());
+        // 如果当前正在连接中，直接返回
+        if (camera.getStatus() == Camera.CameraStatus.CONNECTING) {
+            throw new ServiceException("Camera is already connecting");
         }
 
-        // 调用流媒体服务获取流地址
-        return streamingService.getStreamUrl(camera);
+        // 设置状态为连接中
+        camera.setStatus(Camera.CameraStatus.CONNECTING);
+        camera.setUpdatedAt(LocalDateTime.now());
+        cameraRepository.save(camera);
+
+        try {
+            // 调用流媒体服务获取流地址
+            String streamUrl = streamingService.getStreamUrl(id);
+
+            // 连接成功后更新为在线状态
+            camera.setStatus(Camera.CameraStatus.ONLINE);
+            camera.setLastActiveTime(LocalDateTime.now());
+            camera.setUpdatedAt(LocalDateTime.now());
+            cameraRepository.save(camera);
+
+            log.info("Camera {} is now online", id);
+            return streamUrl;
+        } catch (Exception e) {
+            // 连接失败，更新状态为错误
+            camera.setStatus(Camera.CameraStatus.ERROR);
+            camera.setUpdatedAt(LocalDateTime.now());
+            cameraRepository.save(camera);
+            throw new ServiceException("Failed to start stream: " + e.getMessage());
+        }
     }
 
     @Override
+    @Transactional
     public void stopCameraStream(Long id) {
         log.info("Stopping stream for camera with id: {}", id);
         Camera camera = cameraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
 
-        streamingService.stopStream(camera);
+        streamingService.stopStream(id);
+
+        // 停止成功后更新状态为离线
+        camera.setStatus(Camera.CameraStatus.OFFLINE);
+        camera.setUpdatedAt(LocalDateTime.now());
+        cameraRepository.save(camera);
+
+        log.info("Camera {} is now offline", id);
     }
 
     @Override
@@ -297,6 +330,14 @@ public class CameraServiceImpl implements CameraService {
     public List<CameraDTO> getDeletedCameras() {
         log.info("Fetching all deleted cameras");
         return cameraRepository.findAllDeleted().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<CameraDTO> getAllOnlineCameras() {
+        log.info("Fetching all online cameras");
+        return cameraRepository.findByStatus(Camera.CameraStatus.ONLINE).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -468,5 +509,109 @@ public class CameraServiceImpl implements CameraService {
         }
 
         log.info("Automatic camera assignment completed: {} succeeded, {} failed", successCount, failCount);
+    }
+
+    @Override
+    public void updateCameraResolution(Long id, String resolution) {
+        Camera camera = cameraRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
+        camera.setResolution(resolution);
+        camera.setUpdatedAt(LocalDateTime.now());
+        cameraRepository.save(camera);
+    }
+
+    @Override
+    public void updateCameraCredentials(Long id, String username, String password) {
+        Camera camera = cameraRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
+        camera.setUsername(username);
+        camera.setPassword(password);
+        camera.setUpdatedAt(LocalDateTime.now());
+        cameraRepository.save(camera);
+    }
+
+    @Override
+    public void batchDeleteCameras(List<Long> cameraIds) {
+        log.info("Batch deleting {} cameras", cameraIds.size());
+        for (Long id : cameraIds) {
+            try {
+                deleteCamera(id);
+            } catch (Exception e) {
+                log.error("Failed to delete camera {}: {}", id, e.getMessage());
+            }
+        }
+    }
+
+    @Override
+    public void batchUpdateEdgeNode(List<Long> cameraIds, Long edgeNodeId) {
+        log.info("Batch updating edge node for {} cameras to {}", cameraIds.size(), edgeNodeId);
+        for (Long id : cameraIds) {
+            try {
+                Camera camera = cameraRepository.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
+                
+                // 减少原节点计数
+                if (camera.getEdgeNodeId() != null) {
+                    edgeNodeRepository.findById(camera.getEdgeNodeId()).ifPresent(node -> {
+                        node.setCurrentCameraCount(Math.max(0, node.getCurrentCameraCount() - 1));
+                        edgeNodeRepository.save(node);
+                    });
+                }
+                
+                // 更新节点
+                camera.setEdgeNodeId(edgeNodeId);
+                camera.setUpdatedAt(LocalDateTime.now());
+                cameraRepository.save(camera);
+                
+                // 增加新节点计数
+                edgeNodeRepository.findById(edgeNodeId).ifPresent(node -> {
+                    node.setCurrentCameraCount(node.getCurrentCameraCount() + 1);
+                    edgeNodeRepository.save(node);
+                });
+            } catch (Exception e) {
+                log.error("Failed to update edge node for camera {}: {}", id, e.getMessage());
+            }
+        }
+    }
+
+    @Override
+    public List<CameraDTO> getOnlineCamerasByEdgeNode(Long edgeNodeId) {
+        log.info("Fetching online cameras for edge node: {}", edgeNodeId);
+        return cameraRepository.findByEdgeNodeIdAndStatus(edgeNodeId, Camera.CameraStatus.ONLINE).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Map<String, Object> getCameraStatistics(Long cameraId) {
+        Camera camera = cameraRepository.findById(cameraId)
+                .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + cameraId));
+        
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("id", camera.getId());
+        stats.put("name", camera.getName());
+        stats.put("status", camera.getStatus());
+        stats.put("lastActiveTime", camera.getLastActiveTime());
+        stats.put("createdAt", camera.getCreatedAt());
+        
+        // 计算在线时长百分比
+        if (camera.getCreatedAt() != null && camera.getLastActiveTime() != null) {
+            stats.put("uptimePercentage", calculateUptimePercentage(camera));
+        }
+        
+        return stats;
+    }
+
+    @Override
+    public boolean testCameraConnection(Long cameraId) {
+        Camera camera = cameraRepository.findById(cameraId)
+                .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + cameraId));
+        // 简单测试：检查连接URL是否有效
+        return camera.getConnectionUrl() != null && !camera.getConnectionUrl().isEmpty();
+    }
+
+    @Override
+    public long getCameraCountByStatus(Camera.CameraStatus status) {
+        return cameraRepository.countByStatus(status);
     }
 }
