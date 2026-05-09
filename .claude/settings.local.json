@@ -58,7 +58,8 @@
       "Bash(grep -E \"\\\\.jar$\")",
       "Bash(mvn package *)",
       "Bash(mvn spring-boot:run -Dspring-boot.run.arguments=\"--spring.profiles.active=test\" -DskipTests=true -Djacoco.skip=true)",
-      "Bash(mvn *)"
+      "Bash(mvn *)",
+      "Bash(grep -E \"\\\\.\\(java|md\\)$\")"
     ]
   }
 }

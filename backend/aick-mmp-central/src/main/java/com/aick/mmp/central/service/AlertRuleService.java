@@ -29,20 +29,11 @@ public interface AlertRuleService {
      */
     AlertRuleDTO createAlertRule(AlertRuleDTO request);
 
-    /**
-     * 更新告警规则
-     */
-    AlertRule updateRule(Long id, AlertRuleRequest request);
-
+    
     /**
      * 更新告警规则（DTO版本）
      */
     AlertRuleDTO updateAlertRule(Long id, AlertRuleDTO request);
-
-    /**
-     * 更新告警规则
-     */
-    AlertRule updateRule(Long id, AlertRuleRequest request);
 
     /**
      * 删除告警规则（级联删除条件和通知配置）

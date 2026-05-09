@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: aick-mmp-central-test
+    
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: 
+    
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      
+  h2:
+    console:
+      enabled: true
+      
+# Server configuration
+server:
+  port: 0  # Random port for tests
+
+# Security configuration
+security:
+  jwt:
+    secret: test-jwt-secret-key-for-integration-testing-only-minimum-256-bits-required
+    expiration: 86400000
+    
+  encryption:
+    key: test-encryption-key-32bytes!!!
+    
+  signature:
+    timestamp-tolerance-seconds: 300
+    
+# Actuator
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

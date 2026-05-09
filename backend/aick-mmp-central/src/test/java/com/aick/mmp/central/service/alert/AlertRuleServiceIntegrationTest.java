@@ -13,7 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import jakarta.transaction.Transactional;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+@SpringBootTest(classes = com.aick.mmp.central.CentralApplication.class)
 @Transactional
 public class AlertRuleServiceIntegrationTest extends BaseIntegrationTest {
 
