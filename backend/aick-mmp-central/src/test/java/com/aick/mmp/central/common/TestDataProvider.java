@@ -5,7 +5,7 @@ import com.aick.mmp.shared.model.EdgeNode;
 import com.aick.mmp.shared.model.Camera;
 import org.springframework.stereotype.Component;
 
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Component
 public class TestDataProvider {
@@ -30,7 +30,7 @@ public class TestDataProvider {
                 .location("Test Location")
                 .ipAddress("192.168.1.100")
                 .status(EdgeNode.NodeStatus.ONLINE)
-                .heartbeatTime(new Date())
+                .lastHeartbeatTime(LocalDateTime.now())
                 .build();
     }
 
