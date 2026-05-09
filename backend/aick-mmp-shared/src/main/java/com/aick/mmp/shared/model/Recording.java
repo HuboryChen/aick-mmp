@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Where;
 
 import java.time.LocalDateTime;
 
@@ -17,8 +18,12 @@ import java.time.LocalDateTime;
 @Table(name = "recordings", indexes = {
     @Index(name = "idx_recording_camera", columnList = "camera_id"),
     @Index(name = "idx_recording_start_time", columnList = "start_time"),
-    @Index(name = "idx_recording_status", columnList = "status")
+    @Index(name = "idx_recording_status", columnList = "status"),
+    @Index(name = "idx_recordings_is_deleted", columnList = "is_deleted"),
+    @Index(name = "idx_recordings_deleted_at", columnList = "is_deleted, deleted_at"),
+    @Index(name = "idx_recordings_orphaned_at", columnList = "orphaned_at")
 })
+@Where(clause = "is_deleted = false")
 @Data
 @Builder
 @NoArgsConstructor
@@ -131,4 +136,31 @@ public class Recording {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ========== 软删除支持字段 ==========
+
+    /**
+     * 软删除标志（主查询条件）
+     */
+    @Column(name = "is_deleted", nullable = false)
+    @Builder.Default
+    private Boolean isDeleted = false;
+
+    /**
+     * 删除时间（用于清理策略和审计）
+     */
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    /**
+     * 孤立时间（当关联摄像头被删除时标记）
+     */
+    @Column(name = "orphaned_at")
+    private LocalDateTime orphanedAt;
+
+    /**
+     * 孤立原因（通常是关联的摄像头ID）
+     */
+    @Column(name = "orphaned_by")
+    private Long orphanedBy;
 }

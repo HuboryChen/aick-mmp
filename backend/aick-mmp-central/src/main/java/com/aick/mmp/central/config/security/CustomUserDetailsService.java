@@ -1,5 +1,6 @@
 package com.aick.mmp.central.config.security;
 
+import com.aick.mmp.central.security.CustomUserDetails;
 import com.aick.mmp.shared.model.User;
 import com.aick.mmp.central.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,14 +23,13 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findActiveUserByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("用户不存在: " + username));
 
-        return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getUsername())
-                .password(user.getPassword())
-                .authorities(Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())))
-                .accountExpired(false)
-                .accountLocked(!user.isEnabled()) // Fixed: user is locked if NOT enabled
-                .credentialsExpired(false)
-                .disabled(!user.isEnabled()) // Fixed: user is disabled if NOT enabled
-                .build();
+        return new CustomUserDetails(
+                user.getId(),
+                user.getUsername(),
+                user.getPassword(),
+                user.isEnabled(),
+                user.isEnabled(),
+                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
+        );
     }
 }

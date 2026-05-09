@@ -1,0 +1,178 @@
+/* CDN节点管理页面样式 */
+
+.cdn-stats-row {
+  margin-bottom: 16px;
+}
+
+.cdn-stat-card {
+  text-align: center;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  transition: all 0.3s ease;
+}
+
+.cdn-stat-card:hover {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+}
+
+.cdn-search-card {
+  margin-bottom: 16px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+}
+
+.cdn-nodes-table {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cdn-nodes-table .ant-table-thead > tr > th {
+  background: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cdn-nodes-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cdn-nodes-table .ant-table-tbody > tr:hover > td {
+  background: rgba(0, 212, 255, 0.05);
+}
+
+/* 详情弹窗样式 */
+.metric-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  transition: all 0.3s ease;
+}
+
+.metric-card:hover {
+  border-color: var(--color-accent);
+}
+
+/* 状态指示器 */
+.status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-indicator .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.status-indicator.online .status-dot {
+  background: #52c41a;
+  box-shadow: 0 0 8px #52c41a;
+}
+
+.status-indicator.offline .status-dot {
+  background: #ff4d4f;
+  box-shadow: 0 0 8px #ff4d4f;
+}
+
+.status-indicator.warning .status-dot {
+  background: #faad14;
+  box-shadow: 0 0 8px #faad14;
+}
+
+/* 负载进度条 */
+.load-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.load-progress .percentage {
+  min-width: 40px;
+  text-align: right;
+  font-weight: 500;
+}
+
+/* 图表容器 */
+.chart-container {
+  padding: 16px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+/* 节点图标 */
+.node-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 212, 255, 0.2));
+  color: var(--color-accent);
+  font-size: 16px;
+}
+
+/* 表格操作按钮 */
+.action-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.action-buttons .ant-btn {
+  padding: 0 8px;
+}
+
+/* 弹窗样式增强 */
+.ant-modal .ant-modal-header {
+  background: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.ant-modal .ant-modal-content {
+  background: var(--color-bg-card);
+}
+
+.ant-modal .ant-modal-footer {
+  border-top: 1px solid var(--color-border);
+}
+
+/* Tab 样式 */
+.ant-tabs .ant-tabs-tab {
+  padding: 12px 16px;
+}
+
+.ant-tabs .ant-tabs-tab:hover {
+  color: var(--color-accent);
+}
+
+.ant-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--color-accent);
+}
+
+.ant-tabs .ant-tabs-ink-bar {
+  background: var(--color-accent);
+}
+
+/* 动画 */
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .cdn-stats-row .ant-col {
+    margin-bottom: 12px;
+  }
+}

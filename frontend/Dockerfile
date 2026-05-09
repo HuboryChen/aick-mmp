@@ -1,35 +1,31 @@
-FROM node:20-alpine as dependencies
+# Multi-stage: build + runtime for Frontend
+# Uses BuildKit --mount=type=cache for npm cache persistence
+
+FROM node:20-alpine AS build
 WORKDIR /app
 
-# 只复制package文件以最大化利用Docker缓存
+# Install dependencies with npm cache mount
 COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --legacy-peer-deps
 
-# 安装所有依赖（包括开发依赖，因为构建需要它们）
-# 使用npm ci以获得更快、更可靠的安装
-RUN npm ci && npm cache clean --force
-
-# 构建阶段
-FROM node:20-alpine as build
-WORKDIR /app
-
-# 从依赖阶段复制已安装的node_modules
-COPY --from=dependencies /app/node_modules ./node_modules
-
-# 复制源代码
-COPY package*.json ./
+# Copy source
 COPY public ./public
 COPY src ./src
 
-# 设置环境变量以优化构建
+# Build
 ENV GENERATE_SOURCEMAP=false
 ENV CI=false
 ENV SKIP_PREFLIGHT_CHECK=true
-
-# 执行构建
 RUN npm run build
 
+# ============================================================
+# Runtime: nginx
+# ============================================================
 FROM nginx:alpine
+
 COPY --from=build /app/build /usr/share/nginx/html
+
 RUN rm /etc/nginx/conf.d/default.conf
 RUN echo "server { \
     listen 80; \
@@ -42,12 +38,14 @@ RUN echo "server { \
         try_files \$uri \$uri/ /index.html; \
     } \
     location /api/ { \
-        proxy_pass http://central-lb/; \
+        proxy_pass http://central-lb; \
         proxy_set_header Host \$host; \
         proxy_set_header X-Real-IP \$remote_addr; \
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for; \
         proxy_set_header X-Forwarded-Proto \$scheme; \
     } \
 }" > /etc/nginx/conf.d/default.conf
+
 EXPOSE 80
+
 CMD ["nginx", "-g", "daemon off;"]

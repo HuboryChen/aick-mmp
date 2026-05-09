@@ -1,9 +1,11 @@
 package com.aick.mmp.central;
 
+import com.aick.mmp.central.config.properties.EdgeNodeProperties;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -13,12 +15,14 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableAsync
 @EnableScheduling
+@EnableConfigurationProperties(EdgeNodeProperties.class)
 @EnableJpaRepositories(basePackages = {
     "com.aick.mmp.central.repository"
 })
 @EntityScan(basePackages = {
     "com.aick.mmp.shared.model",
-    "com.aick.mmp.model"
+    "com.aick.mmp.model",
+    "com.aick.mmp.central.entity"
 })
 @ComponentScan(basePackages = {
     "com.aick.mmp.central",

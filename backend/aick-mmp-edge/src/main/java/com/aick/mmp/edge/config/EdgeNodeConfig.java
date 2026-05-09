@@ -2,21 +2,15 @@ package com.aick.mmp.edge.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.web.client.RestTemplate;
 
 @Configuration
 @Profile("edge")
 @ConfigurationProperties(prefix = "edge")
-@EnableConfigurationProperties
+@EnableConfigurationProperties(EdgeNodeConfig.class)
 public class EdgeNodeConfig {
 
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
 
     private String nodeId;
     private String region;
@@ -33,6 +27,7 @@ public class EdgeNodeConfig {
         private double cpuThreshold = 80.0;
         private double memoryThreshold = 85.0;
         private double bandwidthThreshold = 80.0;
+        private double latencyThreshold = 100.0;
         
         // Getters and setters
         public int getIntervalSeconds() {
@@ -65,6 +60,14 @@ public class EdgeNodeConfig {
         
         public void setBandwidthThreshold(double bandwidthThreshold) {
             this.bandwidthThreshold = bandwidthThreshold;
+        }
+        
+        public double getLatencyThreshold() {
+            return latencyThreshold;
+        }
+        
+        public void setLatencyThreshold(double latencyThreshold) {
+            this.latencyThreshold = latencyThreshold;
         }
     }
     

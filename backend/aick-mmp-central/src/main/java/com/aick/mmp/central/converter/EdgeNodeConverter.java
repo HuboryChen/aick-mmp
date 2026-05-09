@@ -1,7 +1,9 @@
 package com.aick.mmp.central.converter;
 
 import com.aick.mmp.shared.model.EdgeNode;
+import com.aick.mmp.shared.model.Region;
 import com.aick.mmp.central.dto.EdgeNodeDTO;
+import com.aick.mmp.central.repository.RegionRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,6 +17,9 @@ public class EdgeNodeConverter {
     @Autowired
     private ModelMapper modelMapper;
 
+    @Autowired
+    private RegionRepository regionRepository;
+
     /**
      * 将EdgeNode实体转换为EdgeNodeDTO
      *
@@ -25,7 +30,13 @@ public class EdgeNodeConverter {
         if (edgeNode == null) {
             return null;
         }
-        return modelMapper.map(edgeNode, EdgeNodeDTO.class);
+        EdgeNodeDTO dto = modelMapper.map(edgeNode, EdgeNodeDTO.class);
+        // 设置区域名称
+        if (edgeNode.getRegionId() != null) {
+            regionRepository.findById(edgeNode.getRegionId())
+                .ifPresent(region -> dto.setRegionName(region.getName()));
+        }
+        return dto;
     }
 
     /**

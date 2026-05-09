@@ -11,15 +11,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.JsonElement;
 
 /**
  * RTMP协议适配器，处理RTMP协议摄像头的接入和媒体流管理
@@ -171,8 +169,7 @@ public class RtmpProtocolAdapter implements ProtocolAdapter {
         if (matcher.matches()) {
             String host = matcher.group(1);
             String port = matcher.group(2);
-            String path = matcher.group(3);
-            
+
             // 如果端口未指定，使用默认RTMP端口
             if (port == null || port.isEmpty()) {
                 port = "1935";
@@ -205,9 +202,10 @@ public class RtmpProtocolAdapter implements ProtocolAdapter {
     private boolean checkStreamAvailability(String apiUrl) {
         try {
             log.info("Checking stream availability at: {}", apiUrl);
-            
+
             // 创建HTTP连接
-            URL url = new URL(apiUrl);
+            URI uri = URI.create(apiUrl);
+            URL url = uri.toURL();
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(5000);
@@ -239,7 +237,7 @@ public class RtmpProtocolAdapter implements ProtocolAdapter {
             } else if (responseCode == 401) {
                 log.warn("Authentication required for MediaMTX API. Response code: {}", responseCode);
                 // Try with basic authentication as fallback
-                connection = (HttpURLConnection) url.openConnection();
+                connection = (HttpURLConnection) uri.toURL().openConnection();
                 connection.setRequestMethod("GET");
                 connection.setConnectTimeout(5000);
                 connection.setReadTimeout(5000);

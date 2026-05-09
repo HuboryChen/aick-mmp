@@ -1,0 +1,69 @@
+/* Login Page Styles */
+/* Migrated from Login.js <style> tag - Phase 2 Task 10.3 */
+
+/* Login-specific animations (not in theme.css) */
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Industrial Input Overrides for Login */
+.login-container .industrial-input .ant-input {
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+.login-container .industrial-input:hover .ant-input,
+.login-container .industrial-input .ant-input:focus {
+  border-color: var(--color-accent) !important;
+}
+
+/* Login Button Hover Effect */
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0, 212, 255, 0.5) !important;
+}
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+/* Checkbox Override */
+.login-container .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: var(--color-accent) !important;
+  border-color: var(--color-accent) !important;
+}
+
+/* Password Icon Color */
+.login-container .ant-input-password-icon {
+  color: var(--color-text-secondary) !important;
+}
+
+/* Affix Wrapper (Input.Password wrapper) */
+.login-container .ant-input-affix-wrapper {
+  background: var(--color-bg-primary) !important;
+  border-color: var(--color-border) !important;
+}
+
+.login-container .ant-input-affix-wrapper:hover,
+.login-container .ant-input-affix-wrapper-focused {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
+}

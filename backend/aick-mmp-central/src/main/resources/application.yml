@@ -121,7 +121,7 @@ management:
 
 # Janus WebRTC Gateway Configuration
 janus:
-  server-url: ${JANUS_SERVER_URL:http://localhost:8088}
+  server-url: ${JANUS_SERVER_URL:http://localhost:8088/janus}
   api-key: ${JANUS_API_KEY:}
   connect-timeout: 10000
   read-timeout: 30000
@@ -153,7 +153,7 @@ alert:
 webrtc:
   config:
     janus:
-      server-url: ${JANUS_SERVER_URL:http://localhost:8088}
+      server-url: ${JANUS_SERVER_URL:http://localhost:8088/janus}
       timeout: 5000
     kurento:
       server-url: ${KURENTO_SERVER_URL:wss://localhost:8443/kurento}
@@ -204,6 +204,9 @@ edge-node:
   reconnect-interval: 5000
   max-reconnect-attempts: 10
   local-storage-path: ${EDGE_STORAGE_PATH:/var/local/mmp/edge-storage}
+  region-bonus-rate: 0.3
+  cpu-threshold: 80.0
+  memory-threshold: 85.0
 
 # Edge Node Failover Configuration
 # 边缘节点故障转移配置：当节点离线时自动迁移摄像头到其他健康节点
@@ -260,3 +263,26 @@ recording:
     cron: "0 0 2 * * ?"
     # 是否启用自动清理
     enabled: true
+
+# 摄像头配置模板
+camera-config-templates:
+  preset-templates-path: "classpath:templates/preset-cameras.json"
+
+# 摄像头自动分配配置
+camera:
+  assignment:
+    region-bonus: 0.3              # 同地区节点评分加成比例 (0.0-1.0)
+    max-cpu-load: 90.0             # 排除节点的CPU负载阈值 (%)
+    capacity-buffer: 0.1           # 节点容量保留余量比例 (0.0-1.0)
+
+# 网络扫描
+camera-discovery:
+  scan-batch-size: 50
+  scan-timeout-ms: 2000
+  common-ports: [554, 80, 8080, 8554]
+
+# 批量导入
+camera-batch-import:
+  batch-size: 50
+  batch-delay-ms: 100
+  max-file-size-mb: 10

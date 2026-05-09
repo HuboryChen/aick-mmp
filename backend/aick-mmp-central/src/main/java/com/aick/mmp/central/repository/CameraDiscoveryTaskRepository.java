@@ -1,0 +1,17 @@
+package com.aick.mmp.central.repository;
+
+import com.aick.mmp.shared.model.CameraDiscoveryTask;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface CameraDiscoveryTaskRepository extends JpaRepository<CameraDiscoveryTask, Long> {
+
+    Page<CameraDiscoveryTask> findByUserIdOrderByCreatedAtDesc(Long userId, Pageable pageable);
+
+    List<CameraDiscoveryTask> findByStatus(String status);
+}

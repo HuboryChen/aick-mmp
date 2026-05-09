@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -30,8 +30,19 @@ public class EdgeNode {
     @Column(nullable = false, unique = true)
     private String name;
 
+    /**
+     * Detailed address (street address, etc.)
+     * 详细地址（如街道门牌号等）
+     */
     @Column(nullable = false)
     private String location;
+
+    /**
+     * Associated region for hierarchical management
+     * 关联区域，用于层级管理
+     */
+    @Column(name = "region_id")
+    private Long regionId;
 
     @Column(nullable = false)
     private String ipAddress;
@@ -39,11 +50,18 @@ public class EdgeNode {
     @Column(nullable = false)
     private Integer port;
 
-    @Column(name = "auth_username")
-    private String authUsername;
+    /**
+     * Associated system app for authentication
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "app_id")
+    private SystemApp systemApp;
 
-    @Column(name = "auth_password")
-    private String authPassword;
+    /**
+     * Registration timestamp
+     */
+    @Column(name = "registered_at")
+    private LocalDateTime registeredAt;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -76,10 +94,12 @@ public class EdgeNode {
     @Column(name = "network_bandwidth")
     private String networkBandwidth;
 
+    @Builder.Default
     @Column(name = "system_metrics", columnDefinition = "JSON")
     @Convert(converter = MapToStringConverter.class)
     private Map<String, Object> systemMetrics = new HashMap<>();
 
+    @Builder.Default
     @Column(name = "is_enabled")
     private boolean enabled = true;
 

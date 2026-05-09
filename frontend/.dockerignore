@@ -39,3 +39,14 @@ coverage
 
 # OS generated files
 Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Git
+.git
+.gitignore
+
+# Documentation
+*.md

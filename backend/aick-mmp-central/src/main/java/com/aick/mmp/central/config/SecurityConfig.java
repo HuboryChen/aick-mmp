@@ -1,7 +1,8 @@
 package com.aick.mmp.central.config;
 
 import com.aick.mmp.central.config.security.CustomUserDetailsService;
-import com.aick.mmp.central.config.security.JwtAuthenticationFilter;
+import com.aick.mmp.central.security.UnifiedAuthFilter;
+import com.aick.mmp.central.security.strategy.AuthenticationStrategyFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -31,26 +32,34 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     private final CustomUserDetailsService userDetailsService;
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthenticationStrategyFactory authenticationStrategyFactory;
+
+    @Bean
+    public UnifiedAuthFilter unifiedAuthFilter() {
+        return new UnifiedAuthFilter(authenticationStrategyFactory);
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeRequests(authz -> authz
-                .antMatchers("/auth/**").permitAll()
-                .antMatchers("/health/**").permitAll()
-                .antMatchers("/edge-nodes/register").permitAll()
-                .antMatchers("/edge-nodes/*/heartbeat").permitAll()
-                .antMatchers("/cameras/edge-node/*").permitAll()
-                .antMatchers("/actuator/**").permitAll()
-                .antMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .antMatchers("/users/**").hasRole("ADMIN") // 用户管理接口仅允许ADMIN角色访问
+            // 禁用匿名认证，因为我们使用UnifiedAuthFilter来处理所有认证
+            .anonymous(AbstractHttpConfigurer::disable)
+            .authorizeHttpRequests(authz -> authz
+                // Public endpoints - no authentication required
+                .requestMatchers("/api/auth/login", "/api/auth/validate").permitAll()
+                // Edge registration uses AK/SK authentication in the filter
+                .requestMatchers("/api/edge/register").permitAll()
+                // Health check endpoints
+                .requestMatchers("/actuator/health").permitAll()
+                // All other requests require authentication
                 .anyRequest().authenticated()
             )
             .authenticationProvider(authenticationProvider())
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            // Use UnifiedAuthFilter with factory+strategy pattern
+            // Add before UsernamePasswordAuthenticationFilter
+            .addFilterBefore(unifiedAuthFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -86,7 +95,13 @@ public class SecurityConfig {
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        configuration.setExposedHeaders(Arrays.asList(
+            "Authorization", 
+            "Content-Type",
+            "X-Access-Key",
+            "X-Signature",
+            "X-Timestamp"
+        ));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

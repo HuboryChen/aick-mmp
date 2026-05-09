@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -34,15 +34,19 @@ public class StreamSession {
     @Transient
     private Map<String, Double> networkMetrics;
 
+    @Builder.Default
     @Column(name = "has_motion_detected")
     private boolean hasMotionDetected = false;
 
+    @Builder.Default
     @Column(name = "ai_event_count")
     private int aiEventCount = 0;
 
+    @Builder.Default
     @Column(name = "motion_detection_enabled")
     private boolean motionDetectionEnabled = false;
 
+    @Builder.Default
     @Column(name = "ai_processing_enabled")
     private boolean aiProcessingEnabled = false;
 
@@ -72,9 +76,11 @@ public class StreamSession {
     @Column(name = "frame_rate")
     private Integer frameRate;
 
+    @Builder.Default
     @Column(name = "bytes_transferred")
     private Long bytesTransferred = 0L;
 
+    @Builder.Default
     @Column(name = "is_recording")
     private Boolean isRecording = false;
 

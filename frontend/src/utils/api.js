@@ -34,7 +34,10 @@ export const cameraApi = {
   deleteCamera: (id) => axios.delete(`/cameras/${id}`),
   startStream: (id) => axios.post(`/cameras/${id}/start`),
   stopStream: (id) => axios.post(`/cameras/${id}/stop`),
-  batchDeleteCameras: (batchData) => axios.post('/cameras/batch-delete', batchData),
+  batchDeleteCameras: (cameraIds) => axios.post('/cameras/batch-operation', {
+    operation: 'DELETE',
+    cameraIds: Array.isArray(cameraIds) ? cameraIds : cameraIds.cameraIds
+  }),
   batchUpdateEdgeNode: (batchData, edgeNodeId) => axios.post('/cameras/batch-update-edge-node', { ...batchData, edgeNodeId }),
   autoAssignCameras: () => axios.post('/cameras/auto-assign'),
   getOptimalEdgeNode: (cameraName) => axios.get('/cameras/optimal-edge-node', { params: { cameraName } }),
@@ -102,7 +105,46 @@ export const recordingApi = {
   getRecording: (id) => axios.get(`/recordings/${id}`),
   deleteRecording: (id) => axios.delete(`/recordings/${id}`),
   getRecordingUrl: (id) => axios.get(`/recordings/${id}/url`),
+  
+  // 获取录像列表（支持增强查询参数）
   getRecordings: (params) => axios.get('/recordings', { params }),
+  
+  // 查询参数增强
+  getRecordingsWithFilters: (params) => {
+    const {
+      page = 0,
+      size = 20,
+      cameraId,
+      location,
+      startTime,
+      endTime,
+      status,
+      integrityStatus,
+      recordingType,
+      minFileSize,
+      maxFileSize,
+      sort = 'startTime,desc',
+      ...rest
+    } = params;
+    
+    return axios.get('/recordings', {
+      params: {
+        page,
+        size,
+        cameraId,
+        location,
+        startTime,
+        endTime,
+        status,
+        integrityStatus,
+        recordingType,
+        minFileSize,
+        maxFileSize,
+        sort,
+        ...rest,
+      },
+    });
+  },
 
   // 录像下载相关API
   downloadRecording: (id) => {
@@ -351,6 +393,105 @@ export const analyticsApi = {
   
   // 报表模板
   getReportTemplates: () => axios.get('/v1/analytics/report-templates'),
+};
+
+// ========== 录像计划管理相关API ==========
+export const recordingScheduleApi = {
+  getSchedules: (params) => axios.get('/v1/recording-schedules', { params }),
+  getSchedule: (id) => axios.get(`/v1/recording-schedules/${id}`),
+  createSchedule: (schedule) => axios.post('/v1/recording-schedules', schedule),
+  updateSchedule: (id, schedule) => axios.put(`/v1/recording-schedules/${id}`, schedule),
+  deleteSchedule: (id) => axios.delete(`/v1/recording-schedules/${id}`),
+  enableSchedule: (id, enabled) => axios.patch(`/v1/recording-schedules/${id}/enabled`, { enabled }),
+  getSchedulesByCamera: (cameraId) => axios.get(`/v1/recording-schedules/camera/${cameraId}`),
+};
+
+// ========== 移动侦测事件相关API ==========
+export const motionEventApi = {
+  // 移动事件查询
+  getMotionEvents: (params) => axios.get('/v1/motion-events', { params }),
+  getMotionEvent: (id) => axios.get(`/v1/motion-events/${id}`),
+  getMotionEventsByCamera: (cameraId, params) => axios.get(`/v1/motion-events/camera/${cameraId}`, { params }),
+  getMotionEventsByTimeRange: (cameraId, startTime, endTime) => 
+    axios.get(`/v1/motion-events/camera/${cameraId}/time-range`, { params: { startTime, endTime } }),
+  getTriggeredRecordingEvents: (params) => axios.get('/v1/motion-events/triggered', { params }),
+  
+  // 统计
+  countByCamera: (cameraId) => axios.get(`/v1/motion-events/camera/${cameraId}/count`),
+  countByTimeRange: (cameraId, startTime, endTime) => 
+    axios.get(`/v1/motion-events/camera/${cameraId}/count/time-range`, { params: { startTime, endTime } }),
+  
+  // 清理
+  cleanupOldEvents: (daysOld = 30) => axios.delete('/v1/motion-events/cleanup', { params: { daysOld } }),
+  
+  // 关联录像
+  linkRecording: (eventId, recordingId) => 
+    axios.post(`/v1/motion-events/${eventId}/link-recording`, null, { params: { recordingId } }),
+};
+
+// ========== 录像管理增强相关API ==========
+export const enhancedRecordingApi = {
+  // 录像搜索
+  searchRecordings: (params) => axios.get('/recordings/search', { params }),
+  getRecordings: (params) => axios.get('/recordings', { params }),
+  
+  // 已删除录像
+  getDeletedRecordings: (params) => axios.get('/cameras/recordings/deleted', { params }),
+  
+  // 孤立录像
+  getOrphanedRecordings: (params) => axios.get('/cameras/recordings/orphaned', { params }),
+  getOrphanedRecordingsCount: () => axios.get('/cameras/recordings/orphaned/count'),
+  cleanupOrphanedRecordings: (daysOld = 30) => axios.post('/cameras/recordings/cleanup', null, { params: { daysOld } }),
+  
+  // 录像恢复
+  restoreRecording: (id) => axios.post(`/cameras/recordings/${id}/restore`),
+  
+  // 录像下载
+  getRecordingUrl: (id) => axios.get(`/recordings/${id}/url`),
+  downloadRecording: (id) => {
+    return axios.get(`/recordings/${id}/download`, { responseType: 'blob' });
+  },
+};
+
+// ========== 摄像头配置模板相关API ==========
+export const cameraConfigTemplateApi = {
+  getTemplates: (params) => axios.get('/api/camera-config-templates', { params }),
+  getTemplateById: (id) => axios.get(`/api/camera-config-templates/${id}`),
+  createTemplate: (data) => axios.post('/api/camera-config-templates', data),
+  updateTemplate: (id, data) => axios.put(`/api/camera-config-templates/${id}`, data),
+  deleteTemplate: (id) => axios.delete(`/api/camera-config-templates/${id}`),
+  generateUrl: (id, params) => axios.post(`/api/camera-config-templates/${id}/generate-url`, params),
+  matchTemplate: (brand, model) => axios.post('/api/camera-config-templates/match', null, { params: { brand, model } }),
+  importTemplates: (data) => axios.post('/api/camera-config-templates/import', data),
+  exportTemplates: (ids) => axios.get('/api/camera-config-templates/export', { params: { ids } }),
+  getBrands: () => axios.get('/api/camera-config-templates/brands'),
+};
+
+// ========== 网络发现相关API ==========
+export const cameraDiscoveryApi = {
+  startScan: (networkSegment) => axios.post('/api/camera-discovery/scan', { networkSegment }),
+  getScanProgress: (taskId) => axios.get(`/api/camera-discovery/scan/${taskId}/progress`),
+  cancelScan: (taskId) => axios.delete(`/api/camera-discovery/scan/${taskId}`),
+  testConnectivity: (ip, port) => axios.post('/api/camera-discovery/test-connectivity', { ip, port }),
+  identifyDevice: (ip, port) => axios.post('/api/camera-discovery/identify', { ip, port }),
+  getScanHistory: (params) => axios.get('/api/camera-discovery/history', { params }),
+};
+
+// ========== 批量导入相关API ==========
+export const cameraBatchImportApi = {
+  downloadTemplate: () => axios.get('/api/camera-batch-import/template', { responseType: 'blob' }),
+  startImport: (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axios.post('/api/camera-batch-import/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getImportProgress: (taskId) => axios.get(`/api/camera-batch-import/${taskId}/progress`),
+  cancelImport: (taskId) => axios.delete(`/api/camera-batch-import/${taskId}`),
+  downloadErrorReport: (taskId) => axios.get(`/api/camera-batch-import/${taskId}/errors`, { responseType: 'blob' }),
+  getImportHistory: (params) => axios.get('/api/camera-batch-import/history', { params }),
+  validateImportData: (data) => axios.post('/api/camera-batch-import/validate', data),
 };
 
 export default axiosInstance;

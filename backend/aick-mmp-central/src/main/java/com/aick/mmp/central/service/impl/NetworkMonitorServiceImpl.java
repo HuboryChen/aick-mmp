@@ -12,7 +12,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -90,8 +89,8 @@ public class NetworkMonitorServiceImpl implements NetworkMonitorService {
      * 调整边缘节点上的流
      */
     private void adjustStreamsForEdgeNode(EdgeNode edgeNode, Map<String, Double> metrics) {
-        String edgeNodeId = edgeNode.getId().toString();
-        List<StreamSession> sessions = StringUtils.hasText(edgeNodeId) ? 
+        Long edgeNodeId = edgeNode.getId();
+        List<StreamSession> sessions = edgeNodeId != null ? 
             streamSessionRepository.findByEdgeNodeId(edgeNodeId) : 
             Collections.emptyList();
         if (sessions.isEmpty()) return;
@@ -101,7 +100,7 @@ public class NetworkMonitorServiceImpl implements NetworkMonitorService {
 
         // 根据网络状况调整流质量
         for (StreamSession session : sessions) {
-            if (session == null || StringUtils.isEmpty(session.getSessionId())) {
+            if (session == null || !StringUtils.hasText(session.getSessionId())) {
                 continue;
             }
             try {
@@ -142,19 +141,13 @@ public class NetworkMonitorServiceImpl implements NetworkMonitorService {
      */
     private static class NetworkMetricsHistory {
         private final Map<String, Double> recentMetrics = new ConcurrentHashMap<>();
-        private LocalDateTime lastUpdated;
 
         public void addMetrics(Map<String, Double> metrics) {
             recentMetrics.putAll(metrics);
-            lastUpdated = LocalDateTime.now();
         }
 
         public Map<String, Double> getRecentMetrics() {
             return new ConcurrentHashMap<>(recentMetrics);
-        }
-
-        public LocalDateTime getLastUpdated() {
-            return lastUpdated;
         }
     }
 }

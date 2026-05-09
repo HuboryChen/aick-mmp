@@ -2,6 +2,7 @@ package com.aick.mmp.central.controller;
 
 import com.aick.mmp.central.dto.LoginRequest;
 import com.aick.mmp.central.dto.LoginResponse;
+import com.aick.mmp.central.dto.RefreshTokenRequest;
 import com.aick.mmp.central.dto.UserDTO;
 import com.aick.mmp.central.service.AuthService;
 import com.aick.mmp.shared.util.JwtUtil;
@@ -9,8 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/auth")
@@ -49,6 +50,27 @@ public class AuthController {
     @PostMapping("/validate")
     public ResponseEntity<Boolean> validateToken(@RequestParam String token) {
         boolean isValid = authService.validateToken(token);
+        return ResponseEntity.ok(isValid);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refreshToken(@RequestBody RefreshTokenRequest refreshTokenRequest) {
+        String refreshToken = refreshTokenRequest.getRefreshToken();
+        if (refreshToken == null || !authService.validateToken(refreshToken)) {
+            return ResponseEntity.status(401).build();
+        }
+        LoginResponse response = authService.refreshToken(refreshToken);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/session-check")
+    public ResponseEntity<Boolean> checkSessionTimeout(HttpServletRequest request) {
+        String token = extractTokenFromRequest(request);
+        if (token == null || !jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(401).build();
+        }
+        String username = jwtUtil.getUsernameFromToken(token);
+        boolean isValid = authService.checkSessionTimeout(username);
         return ResponseEntity.ok(isValid);
     }
 

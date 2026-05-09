@@ -1,0 +1,350 @@
+/* Industrial Command Center Theme System */
+/* ====================================== */
+
+/* Dark Theme (Default) */
+:root,
+[data-theme="dark"] {
+  /* Backgrounds */
+  --color-bg-primary: #0a0e17;
+  --color-bg-secondary: #141820;
+  --color-bg-card: #1a1f2e;
+  --color-bg-elevated: #242b3d;
+
+  /* Accent Colors */
+  --color-accent: #00d4ff;
+  --color-accent-hover: #33ddff;
+  --color-accent-muted: rgba(0, 212, 255, 0.1);
+
+  /* Text Colors */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+
+  /* Status Colors */
+  --status-online: #00ff88;
+  --status-offline: #ff4757;
+  --status-warning: #fbbf24;
+  --status-info: #60a5fa;
+
+  /* Borders */
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-hover: rgba(255, 255, 255, 0.2);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(0, 212, 255, 0.3);
+  --shadow-glow-strong: 0 0 30px rgba(0, 212, 255, 0.5);
+
+  /* Gradients */
+  --gradient-accent: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
+  --gradient-card: linear-gradient(145deg, rgba(26, 31, 46, 0.9) 0%, rgba(20, 24, 32, 0.95) 100%);
+
+  /* Typography */
+  --font-sans: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  /* Spacing */
+  --header-height: 64px;
+  --sidebar-width: 200px;
+  --sidebar-collapsed-width: 80px;
+
+  /* Login-specific variables (Dark Theme) */
+  --login-bg: linear-gradient(135deg, #0a0e17 0%, #141820 50%, #1a1f2e 100%);
+  --login-radial-glow:
+    radial-gradient(circle at 20% 80%, rgba(0, 212, 255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0, 255, 136, 0.05) 0%, transparent 50%);
+  --login-grid-color: rgba(255, 255, 255, 0.02);
+  --login-logo-gradient: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
+  --login-logo-shadow: 0 0 40px rgba(0, 212, 255, 0.4);
+  --login-icon-color: #00d4ff;
+  --login-title-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  --login-card-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.1);
+  --login-card-bg: rgba(20, 24, 32, 0.9);
+  --login-card-border: rgba(255, 255, 255, 0.1);
+  --login-input-bg: #0a0e17;
+  --login-input-border: rgba(255, 255, 255, 0.1);
+  --login-btn-gradient: linear-gradient(135deg, #00d4ff 0%, #0088cc 100%);
+  --login-btn-shadow: 0 4px 20px rgba(0, 212, 255, 0.4);
+}
+
+/* Light Theme */
+[data-theme="light"] {
+  /* Backgrounds */
+  --color-bg-primary: #f1f5f9;
+  --color-bg-secondary: #ffffff;
+  --color-bg-card: #ffffff;
+  --color-bg-elevated: #f8fafc;
+
+  /* Accent Colors */
+  --color-accent: #0284c7;
+  --color-accent-hover: #0369a1;
+  --color-accent-muted: rgba(2, 132, 199, 0.1);
+
+  /* Text Colors */
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #64748b;
+  --color-text-muted: #94a3b8;
+
+  /* Status Colors */
+  --status-online: #16a34a;
+  --status-offline: #dc2626;
+  --status-warning: #d97706;
+  --status-info: #2563eb;
+
+  /* Borders */
+  --color-border: rgba(0, 0, 0, 0.1);
+  --color-border-hover: rgba(0, 0, 0, 0.2);
+
+  /* Shadows */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 15px rgba(2, 132, 199, 0.2);
+  --shadow-glow-strong: 0 0 25px rgba(2, 132, 199, 0.35);
+
+  /* Gradients */
+  --gradient-accent: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  --gradient-card: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
+
+  /* Login-specific variables (Light Theme) */
+  --login-bg: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
+  --login-radial-glow:
+    radial-gradient(circle at 20% 80%, rgba(2, 132, 199, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(22, 163, 74, 0.05) 0%, transparent 50%);
+  --login-grid-color: rgba(0, 0, 0, 0.02);
+  --login-logo-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  --login-logo-shadow: 0 0 30px rgba(2, 132, 199, 0.3);
+  --login-icon-color: #0284c7;
+  --login-title-shadow: none;
+  --login-card-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  --login-card-bg: rgba(255, 255, 255, 0.95);
+  --login-card-border: rgba(0, 0, 0, 0.1);
+  --login-input-bg: #f8fafc;
+  --login-input-border: rgba(0, 0, 0, 0.1);
+  --login-btn-gradient: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+  --login-btn-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);
+}
+
+/* Animation Keyframes */
+/* =================== */
+
+/* Pulse Glow Animation */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px var(--status-online), 0 0 10px var(--status-online);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 15px var(--status-online), 0 0 25px var(--status-online);
+    opacity: 0.85;
+  }
+}
+
+/* Count Up Animation */
+@keyframes count-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade In Animation */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Slide In Animation */
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Scan Line Animation */
+@keyframes scan-line {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.5;
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+/* Breathing Animation */
+@keyframes breathing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Utility Classes */
+/* ================ */
+
+/* Glassmorphism Effect */
+.glassmorphism {
+  background: var(--gradient-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--color-border);
+}
+
+/* Glow Border */
+.glow-border {
+  border: 1px solid var(--color-accent);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Glow Border on Hover */
+.glow-border-hover {
+  transition: all 0.3s ease;
+}
+
+.glow-border-hover:hover {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Status Indicator Pulse */
+.status-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Text Glow Effect */
+.text-glow {
+  text-shadow: 0 0 10px var(--color-accent);
+}
+
+/* Industrial Card */
+.industrial-card {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.industrial-card:hover {
+  border-color: var(--color-border-hover);
+  box-shadow: var(--shadow-md);
+}
+
+/* Industrial Button */
+.industrial-button {
+  background: var(--gradient-accent);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.industrial-button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-glow);
+}
+
+.industrial-button:active {
+  transform: translateY(0);
+}
+
+/* Industrial Input */
+.industrial-input {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-text-primary);
+  padding: 8px 12px;
+  transition: all 0.3s ease;
+}
+
+.industrial-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
+  outline: none;
+}
+
+.industrial-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+/* ====================================== */
+/* Unified Card Layout Classes            */
+/* See: docs/frontend/card-layout-spacing-guide.md */
+/* ====================================== */
+
+/* Stat Card - padding: 20px (for KPI and statistics) */
+.stat-card,
+.industrial-stat-card {
+  padding: 20px;
+}
+
+/* Normal Card - padding: 16px (standard cards) */
+.industrial-card {
+  padding: 16px;
+}
+
+/* Compact Card - padding: 12px (filters, history, modal contents) */
+.compact-card {
+  padding: 12px;
+}
+
+/* List Card - header/body padding variation */
+.list-card {
+  --card-header-padding: 12px 20px;
+  --card-body-padding: 12px;
+}
+
+/* Card spacing tokens (for consistency) */
+.card-gutter {
+  --card-gutter-x: 16px;
+  --card-gutter-y: 16px;
+}
+
+/* Block spacing utilities */
+.section-block {
+  margin-bottom: 24px; /* mb-6 equivalent */
+}
+
+.section-inner {
+  margin-bottom: 16px; /* mb-4 equivalent */
+}

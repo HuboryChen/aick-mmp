@@ -7,10 +7,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 @Data
@@ -27,9 +27,18 @@ public class EdgeNodeDTO {
     @Size(max = 100, message = "Node name cannot exceed 100 characters")
     private String name;
 
-    @NotBlank(message = "Location is required")
     @Size(max = 100, message = "Location cannot exceed 100 characters")
     private String location;
+
+    /**
+     * Associated region ID for hierarchical management
+     */
+    private Long regionId;
+
+    /**
+     * Associated region name (for display)
+     */
+    private String regionName;
 
     @NotBlank(message = "IP address is required")
     private String ipAddress;

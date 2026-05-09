@@ -84,7 +84,7 @@ const CameraSelector = ({ cameras, selectedCameras, onSelect, onCancel }) => {
                   right: '8px',
                   zIndex: 1
                 }}>
-                  <CheckOutlined style={{ color: '#1890ff', fontSize: '16px', backgroundColor: 'white', borderRadius: '50%' }} />
+                  <CheckOutlined style={{ color: '#1890ff', fontSize: '16px', backgroundColor: 'var(--color-bg-primary)', borderRadius: '50%', padding: 2 }} />
                 </div>
               )}
               

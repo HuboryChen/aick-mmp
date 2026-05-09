@@ -1,0 +1,158 @@
+/* Sidebar Component Styles */
+/* Migrated from Sidebar.js <style> tag - Phase 2 Task 10.5 */
+/* Fixed: All colors use CSS variables for light/dark theme compatibility */
+
+/* ====== Logo Area ====== */
+.sidebar-logo-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 64px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 212, 255, 0.06) 0%,
+    transparent 100%
+  );
+}
+
+/* Collapsed Logo - single letter icon */
+.logo-icon-collapsed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Expanded Logo - mark + text */
+.logo-expanded {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.logo-text-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.logo-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+.logo-subtitle {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  line-height: 1.3;
+}
+
+/* Sider children layout */
+.industrial-sidebar .ant-layout-sider-children {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Menu Items */
+.industrial-menu .ant-menu-item {
+  margin: 4px 8px !important;
+  border-radius: 8px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  transition: all 0.2s ease !important;
+}
+
+.industrial-menu .ant-menu-item:hover {
+  background: var(--color-accent-muted) !important;
+}
+
+.industrial-menu .ant-menu-item-selected {
+  background: var(--color-accent-muted) !important;
+  border-left: 3px solid var(--color-accent) !important;
+}
+
+.industrial-menu .ant-menu-item-selected::after {
+  display: none !important;
+}
+
+/* Menu Icons - use CSS variable color */
+.industrial-menu .ant-menu-item .anticon {
+  transition: all 0.2s ease !important;
+  color: var(--color-text-secondary) !important;
+}
+
+.industrial-menu .ant-menu-item:hover .anticon {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 4px var(--color-accent));
+  color: var(--color-accent) !important;
+}
+
+.industrial-menu .ant-menu-item-selected .anticon {
+  color: var(--color-accent) !important;
+  filter: drop-shadow(0 0 4px var(--color-accent));
+}
+
+/* Menu Title Content - use CSS variable color */
+.industrial-menu .ant-menu-item .ant-menu-title-content {
+  color: var(--color-text-secondary) !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.industrial-menu .ant-menu-item:hover .ant-menu-title-content {
+  color: var(--color-text-primary) !important;
+}
+
+.industrial-menu .ant-menu-item-selected .ant-menu-title-content {
+  color: var(--color-accent) !important;
+}
+
+/* Custom Scrollbar for Sidebar */
+.industrial-sidebar ::-webkit-scrollbar {
+  width: 4px;
+}
+
+.industrial-sidebar ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.industrial-sidebar ::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 2px;
+}
+
+.industrial-sidebar ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

@@ -9,13 +9,18 @@ import {
 
 const { Text } = Typography;
 
-const SplitScreenController = ({ layout, onLayoutChange, disabled = false }) => {
+const SplitScreenController = ({ layout, value, onLayoutChange, onChange, disabled = false }) => {
   const layouts = [
     { value: '1', label: '单屏', icon: <BorderOutlined />, description: '1x1' },
     { value: '4', label: '四分屏', icon: <AppstoreOutlined />, description: '2x2' },
     { value: '9', label: '九分屏', icon: <TableOutlined />, description: '3x3' },
     { value: '16', label: '十六分屏', icon: <LayoutOutlined />, description: '4x4' }
   ];
+
+  // 兼容 layout 和 value prop
+  const currentLayout = layout || value;
+  // 兼容 onLayoutChange 和 onChange prop
+  const handleLayoutChangeCallback = onLayoutChange || onChange;
 
   return (
     <Card 
@@ -32,10 +37,10 @@ const SplitScreenController = ({ layout, onLayoutChange, disabled = false }) => 
         {layouts.map(layoutOption => (
           <Col span={12} key={layoutOption.value}>
             <Button
-              type={layout === layoutOption.value ? 'primary' : 'default'}
+              type={currentLayout === layoutOption.value ? 'primary' : 'default'}
               block
               disabled={disabled}
-              onClick={() => onLayoutChange(layoutOption.value)}
+              onClick={() => handleLayoutChangeCallback(layoutOption.value)}
               style={{
                 height: '60px',
                 display: 'flex',
@@ -61,7 +66,7 @@ const SplitScreenController = ({ layout, onLayoutChange, disabled = false }) => 
       
       <div style={{ marginTop: '12px', padding: '8px', background: '#f5f5f5', borderRadius: '4px' }}>
         <Text type="secondary" style={{ fontSize: '12px' }}>
-          当前布局: <strong>{layouts.find(l => l.value === layout)?.label}</strong>
+          当前布局: <strong>{layouts.find(l => l.value === currentLayout)?.label}</strong>
         </Text>
       </div>
     </Card>

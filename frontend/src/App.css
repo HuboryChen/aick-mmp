@@ -1,101 +1,68 @@
-.App {
-  text-align: center;
+/* App Layout Styles */
+/* Standard Ant Design Layout - no manual positioning needed */
+
+/* App Layout */
+.app-layout {
+  background: var(--color-bg-primary);
+  transition: background-color 0.3s ease;
 }
 
+/* Loading Container */
 .loading-container {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: #f0f2f5;
+  background: var(--color-bg-primary);
 }
 
-/* 修复侧边栏遮挡内容的问题 */
-.ant-layout {
-  position: relative;
-}
-
+/* Layout Sider (Sidebar) - Ant Design manages space natively now */
 .ant-layout-sider {
   z-index: 1000;
+  transition: all 0.3s ease;
 }
 
+/* Layout Header - Ant Design manages position within layout flow */
 .ant-layout-header {
   z-index: 999;
-  padding: 0 16px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
-/* 当侧边栏展开时，为内容区域添加左边距 */
-.content-expanded {
-  transition: margin-left 0.2s;
-  margin-left: 200px;
+/* Content Area - no manual margin-left needed, Ant Design handles it */
+.content-area {
+  min-height: calc(100vh - 64px);
 }
 
-.content-collapsed {
-  transition: margin-left 0.2s;
-  margin-left: 80px;
+/* Content Container */
+.content-container {
+  padding: 16px;
+  animation: fade-in 0.3s ease-out;
 }
 
-/* 自定义滚动条 */
+/* Scrollbar Styling */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--color-bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--color-text-muted);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--color-text-secondary);
 }
 
-/* 响应式布局 */
-@media (max-width: 768px) {
-  .ant-layout-header {
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-  
-  .content-expanded,
-  .content-collapsed {
-    margin-left: 0;
-  }
-}
-
-/* 动画效果 */
-.fade-in {
-  animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.slide-in {
-  animation: slideIn 0.3s ease-out;
-}
-
-@keyframes slideIn {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
-}
-
-/* 视频墙样式 */
+/* Video Grid Styles */
 .video-grid {
   display: grid;
   gap: 8px;
   padding: 16px;
-  background: #000;
+  background: var(--color-bg-primary);
   border-radius: 8px;
 }
 
@@ -115,50 +82,88 @@
   grid-template-columns: 1fr 1fr 1fr 1fr;
 }
 
+/* Video Window */
 .video-window {
   position: relative;
-  background: #1f1f1f;
-  border-radius: 4px;
+  background: var(--color-bg-card);
+  border-radius: 8px;
   overflow: hidden;
   aspect-ratio: 16/9;
+  border: 1px solid var(--color-border);
+  transition: all 0.3s ease;
+}
+
+.video-window:hover {
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
 }
 
 .video-window.selected {
-  border: 2px solid #1890ff;
+  border: 2px solid var(--color-accent);
+  box-shadow: var(--shadow-glow-strong);
 }
 
+/* Video Placeholder */
 .video-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #666;
+  color: var(--color-text-muted);
   font-size: 14px;
 }
 
+/* Video Overlay */
 .video-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+  background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
   color: white;
   padding: 8px 12px;
   font-size: 12px;
 }
 
+/* Video Controls */
 .video-controls {
   position: absolute;
   bottom: 8px;
   right: 8px;
   display: none;
+  transition: opacity 0.3s ease;
 }
 
 .video-window:hover .video-controls {
   display: block;
 }
 
+/* Animation Classes */
+.fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Note: @keyframes fade-in and slide-in are defined in theme.css (single source of truth) */
+
+/* Responsive Layout */
 @media (max-width: 768px) {
+  /* Mobile: sidebar is fixed overlay, content takes full width */
+  .ant-layout:not(.ant-layout-sider) {
+    margin-left: 0 !important;
+  }
+  
+  .content-area {
+    min-height: calc(100vh - 64px);
+  }
+  
+  .content-container {
+    padding: 8px;
+  }
+  
   .video-grid {
     padding: 8px;
     gap: 4px;
@@ -168,4 +173,37 @@
     padding: 4px 8px;
     font-size: 10px;
   }
+  
+  .page-title {
+    font-size: 16px !important;
+  }
+  
+  .page-title-decoration {
+    height: 20px !important;
+    width: 3px !important;
+  }
+}
+
+/* Mobile sidebar overlay */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Note: @keyframes fade-in is defined in theme.css (single source of truth) */
+
+/* Industrial Theme Overrides */
+/* NOTE: Most Ant Design components are styled via ConfigProvider tokens in ThemeProvider.jsx */
+/* Only critical overrides that cannot be handled by tokens are included below */
+
+/* Badge - Custom sizing for industrial theme */
+.ant-badge-status-dot {
+  width: 8px !important; /* Override inline style for consistency */
+  height: 8px !important;
 }

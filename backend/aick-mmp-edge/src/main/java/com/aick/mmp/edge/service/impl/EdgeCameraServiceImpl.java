@@ -16,8 +16,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -296,25 +296,28 @@ public class EdgeCameraServiceImpl implements EdgeCameraService {
         try {
             String centralUrl = edgeNodeConfig.getCentralServerUrl() + "/api/cameras/edge-node/" + edgeNodeConfig.getNodeId();
             ResponseEntity<EdgeCameraDTO[]> response = restTemplate.getForEntity(centralUrl, EdgeCameraDTO[].class);
-            
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                for (EdgeCameraDTO camera : response.getBody()) {
-                    localCameras.put(camera.getId(), camera);
-                    
-                    EdgeCameraStatusDTO status = EdgeCameraStatusDTO.builder()
-                            .cameraId(camera.getId())
-                            .edgeNodeId(edgeNodeConfig.getNodeId())
-                            .status(camera.getStatus())
-                            .lastActiveTime(LocalDateTime.now())
-                            .isConnected(false)
-                            .retryCount(0)
-                            .performanceMetrics(new HashMap<>())
-                            .build();
-                    
-                    cameraStatuses.put(camera.getId(), status);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                EdgeCameraDTO[] cameras = response.getBody();
+                if (cameras != null) {
+                    for (EdgeCameraDTO camera : cameras) {
+                        localCameras.put(camera.getId(), camera);
+
+                        EdgeCameraStatusDTO status = EdgeCameraStatusDTO.builder()
+                                .cameraId(camera.getId())
+                                .edgeNodeId(edgeNodeConfig.getNodeId())
+                                .status(camera.getStatus())
+                                .lastActiveTime(LocalDateTime.now())
+                                .isConnected(false)
+                                .retryCount(0)
+                                .performanceMetrics(new HashMap<>())
+                                .build();
+
+                        cameraStatuses.put(camera.getId(), status);
+                    }
+
+                    log.info("Loaded {} cameras from central server", localCameras.size());
                 }
-                
-                log.info("Loaded {} cameras from central server", localCameras.size());
             }
         } catch (Exception e) {
             log.error("Failed to load cameras from central server: {}", e.getMessage());

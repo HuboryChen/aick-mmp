@@ -1,4 +1,4 @@
-package com.aick.mmp.dto;
+package com.aick.mmp.shared.dto;
 
 import com.aick.mmp.shared.model.User;
 import lombok.AllArgsConstructor;

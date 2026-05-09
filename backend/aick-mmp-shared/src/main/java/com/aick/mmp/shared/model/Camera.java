@@ -7,11 +7,13 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
+import org.hibernate.annotations.Where;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "cameras")
+@Where(clause = "is_deleted = false")
 @Data
 @Builder
 @NoArgsConstructor
@@ -24,7 +26,7 @@ public class Camera {
     @Column(nullable = false)
     private String name;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String location;
 
     @Column(name = "edge_node_id")
@@ -52,6 +54,33 @@ public class Camera {
     @Column(name = "bitrate")
     private Integer bitrate;
 
+    @Column(name = "current_bitrate")
+    private Integer currentBitrate;  // 当前实际码率
+
+    @Column(name = "current_fps")
+    private Double currentFps;  // 当前实际帧率
+
+    @Column(name = "last_error_code")
+    private String lastErrorCode;  // 最后错误代码
+
+    @Column(name = "last_error_message")
+    private String lastErrorMessage;  // 最后错误消息
+
+    @Column(name = "last_heartbeat_time")
+    private LocalDateTime lastHeartbeatTime;  // 最后心跳时间
+
+    /**
+     * Video compression format (e.g., H.264, H.265)
+     */
+    @Column(name = "compression")
+    private String compression;
+
+    /**
+     * Whether audio is enabled for this camera
+     */
+    @Column(name = "audio_enabled")
+    private Boolean audioEnabled;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private CameraStatus status;
@@ -59,8 +88,19 @@ public class Camera {
     @Column(name = "last_active_time")
     private LocalDateTime lastActiveTime;
 
+    @Builder.Default
     @Column(name = "is_enabled")
     private boolean enabled = true;
+
+    @Column(name = "region_id")
+    private Long regionId;
+
+    @Builder.Default
+    @Column(name = "is_deleted")
+    private Boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -75,6 +115,6 @@ public class Camera {
     }
 
     public enum CameraStatus {
-        ONLINE, OFFLINE, CONNECTING, ERROR, MAINTENANCE
+        ONLINE, OFFLINE, CONNECTING, ERROR, MAINTENANCE, PENDING_ALLOCATION
     }
 }

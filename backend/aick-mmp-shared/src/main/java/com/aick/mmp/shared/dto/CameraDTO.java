@@ -1,4 +1,4 @@
-package com.aick.mmp.dto;
+package com.aick.mmp.shared.dto;
 
 import com.aick.mmp.shared.model.Camera;
 import lombok.AllArgsConstructor;
@@ -6,9 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 @Data
@@ -22,9 +22,18 @@ public class CameraDTO {
     @Size(max = 100, message = "Camera name cannot exceed 100 characters")
     private String name;
 
-    @NotBlank(message = "Location is required")
-    @Size(max = 100, message = "Location cannot exceed 100 characters")
+    @Size(max = 255, message = "Location cannot exceed 255 characters")
     private String location;
+
+    /**
+     * Associated region ID for hierarchical management
+     */
+    private Long regionId;
+
+    /**
+     * Associated region name (for display)
+     */
+    private String regionName;
 
     private Long edgeNodeId;
     private String edgeNodeName;

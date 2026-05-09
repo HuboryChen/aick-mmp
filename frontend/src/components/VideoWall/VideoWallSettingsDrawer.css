@@ -1,0 +1,172 @@
+/**
+ * 视频墙设置抽屉组件样式
+ */
+
+/* 抽屉容器 */
+.video-wall-settings-drawer .ant-drawer-body {
+  padding: 16px;
+  background-color: #fafafa;
+}
+
+/* 抽屉区域 */
+.drawer-section {
+  margin-bottom: 8px;
+}
+
+/* 抽屉底部 */
+.drawer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+/* ========== 预设选择器样式 ========== */
+.preset-selector {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.preset-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.preset-section {
+  margin-bottom: 12px;
+}
+
+.preset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.preset-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.preset-item:hover {
+  border-color: #1890ff;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.1);
+}
+
+.preset-item-active {
+  background: #e6f7ff;
+  border-color: #1890ff;
+}
+
+.preset-item-builtin {
+  background: #fffbf0;
+  border-color: #ffe58f;
+}
+
+.preset-item-drag-handle {
+  color: #999;
+  cursor: grab;
+}
+
+.preset-item-drag-handle:active {
+  cursor: grabbing;
+}
+
+.preset-item-content {
+  flex: 1;
+}
+
+/* ========== 布局选择器样式 ========== */
+.layout-selector {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.layout-selector-title {
+  font-weight: 500;
+  color: #333;
+}
+
+/* ========== 画质选择器样式 ========== */
+.quality-selector {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.quality-selector-section {
+  /* section styles */
+}
+
+.quality-selector-title {
+  font-weight: 500;
+  color: #333;
+}
+
+/* ========== 设置预览样式 ========== */
+.settings-preview {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  border: 1px dashed #d9d9d9;
+}
+
+.preview-title {
+  font-weight: 500;
+  color: #666;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.preview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.preview-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.preview-label {
+  color: #999;
+}
+
+.preview-value {
+  color: #333;
+  font-weight: 500;
+}
+
+/* ========== 响应式适配 ========== */
+@media (max-width: 576px) {
+  .video-wall-settings-drawer .ant-drawer-content {
+    width: 100% !important;
+  }
+}
+
+/* ========== Ant Design 覆盖样式 ========== */
+.video-wall-settings-drawer .ant-divider {
+  margin: 16px 0;
+}
+
+.video-wall-settings-drawer .ant-radio-button-wrapper {
+  height: 50px;
+}
+
+.video-wall-settings-drawer .ant-slider {
+  margin: 8px 0;
+}
+
+.video-wall-settings-drawer .ant-slider-mark-text {
+  font-size: 10px;
+}

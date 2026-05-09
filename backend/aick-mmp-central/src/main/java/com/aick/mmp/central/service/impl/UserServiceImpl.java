@@ -1,5 +1,7 @@
 package com.aick.mmp.central.service.impl;
 
+
+import com.aick.mmp.central.dto.ChangePasswordDTO;
 import com.aick.mmp.central.dto.CreateUserRequestDTO;
 import com.aick.mmp.central.dto.UserDTO;
 import com.aick.mmp.central.repository.UserRepository;
@@ -10,13 +12,17 @@ import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +36,34 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<UserDTO> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable)
+                .map(user -> modelMapper.map(user, UserDTO.class));
+    }
+
+    @Override
+    public Page<UserDTO> searchUsers(String keyword, User.UserRole role, User.UserStatus status, Pageable pageable) {
+        Specification<User> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (keyword != null && !keyword.isEmpty()) {
+                predicates.add(cb.or(
+                        cb.like(root.get("username"), "%" + keyword + "%"),
+                        cb.like(root.get("email"), "%" + keyword + "%"),
+                        cb.like(root.get("fullName"), "%" + keyword + "%")
+                ));
+            }
+
+            if (role != null) {
+                predicates.add(cb.equal(root.get("role"), role));
+            }
+
+            if (status != null) {
+                predicates.add(cb.equal(root.get("status"), status));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return userRepository.findAll(spec, pageable)
                 .map(user -> modelMapper.map(user, UserDTO.class));
     }
 
@@ -126,5 +160,113 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User.UserRole> getAllRoles() {
         return Arrays.asList(User.UserRole.values());
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(Long userId, ChangePasswordDTO changePasswordDTO) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+        // 验证旧密码
+        if (!passwordEncoder.matches(changePasswordDTO.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("旧密码不正确");
+        }
+
+        // 更新密码
+        user.setPassword(passwordEncoder.encode(changePasswordDTO.getNewPassword()));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        log.info("用户 {} 修改密码成功", user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(Long userId, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("用户不存在"));
+
+        // 重置密码
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+
+        log.info("管理员重置用户 {} 的密码", user.getUsername());
+    }
+
+    @Override
+    @Transactional
+    public void batchDeleteUsers(List<Long> userIds) {
+        List<User> users = userRepository.findAllById(userIds);
+
+        // 检查是否包含admin
+        boolean containsAdmin = users.stream()
+                .anyMatch(user -> user.getUsername().equals("admin"));
+
+        if (containsAdmin) {
+            throw new RuntimeException("不能删除管理员账户");
+        }
+
+        List<String> usernames = users.stream()
+                .map(User::getUsername)
+                .collect(Collectors.toList());
+
+        userRepository.deleteAllById(userIds);
+        log.info("批量删除用户: {}", usernames);
+    }
+
+    @Override
+    @Transactional
+    public void batchEnableUsers(List<Long> userIds, boolean enabled) {
+        List<User> users = userRepository.findAllById(userIds);
+
+        // 检查是否包含admin
+        boolean containsAdmin = users.stream()
+                .anyMatch(user -> user.getUsername().equals("admin"));
+
+        if (containsAdmin && !enabled) {
+            throw new RuntimeException("不能禁用管理员账户");
+        }
+
+        users.forEach(user -> {
+            user.setEnabled(enabled);
+            user.setUpdatedAt(LocalDateTime.now());
+        });
+
+        userRepository.saveAll(users);
+
+        List<String> usernames = users.stream()
+                .map(User::getUsername)
+                .collect(Collectors.toList());
+
+        log.info("批量{}用户: {}", enabled ? "启用" : "禁用", usernames);
+    }
+
+    @Override
+    @Transactional
+    public void batchUpdateUserRole(List<Long> userIds, User.UserRole role) {
+        List<User> users = userRepository.findAllById(userIds);
+
+        // 检查是否包含admin
+        boolean containsAdmin = users.stream()
+                .anyMatch(user -> user.getUsername().equals("admin"));
+
+        if (containsAdmin) {
+            throw new RuntimeException("不能修改管理员角色");
+        }
+
+        users.forEach(user -> {
+            user.setRole(role);
+            user.setUpdatedAt(LocalDateTime.now());
+        });
+
+        userRepository.saveAll(users);
+
+        List<String> usernames = users.stream()
+                .map(User::getUsername)
+                .collect(Collectors.toList());
+
+        log.info("批量更新用户角色为 {}: {}", role, usernames);
     }
 }

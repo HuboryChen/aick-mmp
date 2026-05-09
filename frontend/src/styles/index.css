@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import Theme Variables */
+@import './theme.css';
+
+/* Base Styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background-primary text-text-primary;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary);
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-text-muted);
+    border-radius: 3px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-secondary);
+  }
+}
+
+/* Component Styles */
+@layer components {
+  /* Stat Card */
+  .stat-card {
+    @apply industrial-card p-4;
+    animation: count-up 0.6s ease-out;
+  }
+  
+  /* Video Card */
+  .video-card {
+    @apply relative overflow-hidden rounded-lg;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    transition: all 0.3s ease;
+  }
+  
+  .video-card:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-glow);
+  }
+  
+  /* Status Badge */
+  .status-badge {
+    @apply inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium;
+  }
+  
+  .status-badge--online {
+    @apply text-status-online;
+  }
+  
+  .status-badge--offline {
+    @apply text-status-offline;
+  }
+  
+  .status-badge--warning {
+    @apply text-status-warning;
+  }
+  
+  /* Menu Item */
+  .menu-item {
+    @apply relative flex items-center gap-3 px-4 py-3 rounded-lg;
+    color: var(--color-text-secondary);
+    transition: all 0.2s ease;
+  }
+  
+  .menu-item:hover {
+    background: var(--color-accent-muted);
+    color: var(--color-text-primary);
+  }
+  
+  .menu-item--active {
+    background: var(--color-accent-muted);
+    color: var(--color-accent);
+    border-left: 3px solid var(--color-accent);
+  }
+  
+  /* Progress Bar */
+  .progress-bar {
+    @apply h-2 rounded-full overflow-hidden;
+    background: var(--color-bg-secondary);
+  }
+  
+  .progress-bar__fill {
+    @apply h-full rounded-full transition-all duration-500;
+    background: var(--gradient-accent);
+    box-shadow: 0 0 10px var(--color-accent);
+  }
+}
+
+/* Animation Utilities */
+@layer utilities {
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+  
+  .animate-count-up {
+    animation: count-up 0.6s ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+  }
+  
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+
+  /* Entrance Animations (Phase 3 Task 14) */
+  .header-enter {
+    animation: header-slide-right 0.4s ease-out both;
+  }
+
+  .sidebar-enter {
+    animation: sidebar-slide-left 0.4s ease-out both;
+  }
+
+  @keyframes header-slide-right {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes sidebar-slide-left {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* Breathing animation for idle states (Phase 3 Task 14.5) */
+  .animate-breathing {
+    animation: breathing 3s ease-in-out infinite;
+  }
+
+  /* Industrial Stat Card (from Dashboard) */
+  .industrial-stat-card {
+    position: relative;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .industrial-stat-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--color-accent) !important;
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Industrial Progress Bar Override */
+  .industrial-progress .ant-progress-bg {
+    transition: all 0.5s ease;
+  }
+}
+
+/* Responsive overrides */
+@media (max-width: 768px) {
+  .industrial-stat-card {
+    margin-bottom: 8px;
+  }
+}

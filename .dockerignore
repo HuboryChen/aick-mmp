@@ -1,0 +1,59 @@
+# ============================================================
+# Docker build ignore file
+# Exclude files that are not needed in the build context
+# ============================================================
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# Build artifacts (will be generated inside container)
+backend/**/target
+frontend/node_modules
+frontend/.next
+frontend/out
+
+# Logs
+**/*.log
+**/logs
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files (secrets should be passed via env or build args)
+.env
+.env.*
+*.env
+
+# Documentation (not needed for build)
+**/*.md
+docs/
+ARCHITECTURE.md
+
+# Test files
+**/src/test
+**/src/it
+**/src/integrationTest
+
+# Docker files (avoid recursion)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+.docker
+
+# CI/CD
+.github
+.gitlab-ci.yml
+Jenkinsfile
+
+# Misc
+*.class
+*.pyc
+*.pyo
+__pycache__

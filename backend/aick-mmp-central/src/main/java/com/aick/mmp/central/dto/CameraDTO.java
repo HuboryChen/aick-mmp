@@ -6,9 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 
 @Data
@@ -22,9 +22,18 @@ public class CameraDTO {
     @Size(max = 100, message = "Camera name cannot exceed 100 characters")
     private String name;
 
-    @NotBlank(message = "Location is required")
-    @Size(max = 100, message = "Location cannot exceed 100 characters")
+    @Size(max = 255, message = "Location cannot exceed 255 characters")
     private String location;
+
+    /**
+     * Associated region ID for hierarchical management
+     */
+    private Long regionId;
+
+    /**
+     * Associated region name (for display)
+     */
+    private String regionName;
 
     private Long edgeNodeId;
     private String edgeNodeName;
@@ -40,6 +49,22 @@ public class CameraDTO {
     private String resolution;
     private Integer frameRate;
     private Integer bitrate;
+    
+    /**
+     * Video compression format (e.g., H.264, H.265)
+     */
+    private String compression;
+    
+    /**
+     * Whether audio is enabled for this camera
+     */
+    private Boolean audioEnabled;
+    
+    /**
+     * Camera uptime percentage (calculated field)
+     */
+    private Double uptimePercentage;
+    
     private Camera.CameraStatus status;
     private LocalDateTime lastActiveTime;
     private boolean enabled;

@@ -1,12 +1,16 @@
 package com.aick.mmp.central.service.impl;
 
+import com.aick.mmp.central.config.properties.EdgeNodeProperties;
 import com.aick.mmp.central.dto.CameraDTO;
+import com.aick.mmp.central.dto.CameraStatisticsDTO;
 import com.aick.mmp.central.dto.CameraStatusUpdateDTO;
 import com.aick.mmp.central.dto.GetCamerasRequestDTO;
+import com.aick.mmp.central.repository.RecordingRepository;
 import com.aick.mmp.shared.exception.ResourceNotFoundException;
 import com.aick.mmp.shared.exception.ServiceException;
 import com.aick.mmp.shared.model.Camera;
 import com.aick.mmp.shared.model.EdgeNode;
+import com.aick.mmp.shared.model.Recording;
 import com.aick.mmp.central.repository.CameraRepository;
 import com.aick.mmp.central.repository.EdgeNodeRepository;
 import com.aick.mmp.central.service.CameraService;
@@ -23,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,10 +39,12 @@ import java.util.stream.Collectors;
 public class CameraServiceImpl implements CameraService {
     private final CameraRepository cameraRepository;
     private final EdgeNodeRepository edgeNodeRepository;
+    private final RecordingRepository recordingRepository;
     private final com.aick.mmp.central.repository.RegionRepository regionRepository;
     private final StreamingService streamingService;
     private final ModelMapper modelMapper;
     private final com.aick.mmp.central.service.NodeWeightCalculator nodeWeightCalculator;
+    private final EdgeNodeProperties edgeNodeProperties;
 
     /**
      * 批量分配的批次大小
@@ -175,10 +182,17 @@ public class CameraServiceImpl implements CameraService {
         Camera camera = cameraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
 
-        // 软删除：设置删除时间
+        // 软删除：设置删除时间（同时设置两个软删除字段确保一致性）
         camera.setDeletedAt(LocalDateTime.now());
+        camera.setIsDeleted(true);
         camera.setUpdatedAt(LocalDateTime.now());
         cameraRepository.save(camera);
+
+        // ========== 级联处理关联录像 ==========
+        // 将关联录像标记为孤立状态
+        LocalDateTime now = LocalDateTime.now();
+        int orphanedCount = recordingRepository.markOrphanedByCameraId(id, now, id);
+        log.info("Marked {} recordings as orphaned for camera {}", orphanedCount, id);
 
         // 减少边缘节点的摄像头计数
         if (camera.getEdgeNodeId() != null) {
@@ -287,15 +301,15 @@ public class CameraServiceImpl implements CameraService {
     public CameraDTO restoreCamera(Long id) {
         log.info("Restoring camera with id: {}", id);
 
-        Camera camera = cameraRepository.findById(id)
+        Camera camera = cameraRepository.findByIdIncludingDeleted(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
 
         if (camera.getDeletedAt() == null) {
             throw new ServiceException("Camera is not deleted");
         }
 
-        // 恢复摄像头
-        camera.setDeletedAt(null);
+        // 恢复摄像头（清除逻辑删除标记）
+        camera.setIsDeleted(false);
         camera.setUpdatedAt(LocalDateTime.now());
         cameraRepository.save(camera);
 
@@ -316,10 +330,8 @@ public class CameraServiceImpl implements CameraService {
     public void forceDeleteCamera(Long id) {
         log.warn("Force deleting camera with id: {}", id);
 
-        Camera camera = cameraRepository.findById(id)
+        Camera camera = cameraRepository.findByIdIncludingDeleted(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
-
-        // 物理删除
         cameraRepository.delete(camera);
 
         // 减少边缘节点的摄像头计数
@@ -426,45 +438,28 @@ public class CameraServiceImpl implements CameraService {
 
         List<EdgeNode> onlineNodes = edgeNodeRepository.findByStatus(EdgeNode.NodeStatus.ONLINE);
         if (onlineNodes.isEmpty()) {
-            throw new ResourceNotFoundException("没有在线的边缘节点可用");
+            throw new ServiceException("没有可用的在线边缘节点");
         }
 
-        // 使用 NodeWeightCalculator 过滤健康节点并计算权重
-        EdgeNode optimalNode = null;
-        double maxWeight = -1;
+        Long cameraRegionId = cameraDTO.getRegionId();
+        double regionBonusRate = edgeNodeProperties.getRegionBonusRate();
 
-        for (EdgeNode node : onlineNodes) {
-            Double cpuUsage = node.getCpuUsage();
-            Double memoryUsage = node.getMemoryUsage();
+        EdgeNode best = onlineNodes.stream()
+            .max(Comparator.comparingDouble(n ->
+                nodeWeightCalculator.calculateWeightWithRegionBonus(
+                    n, n.getCpuUsage(), n.getMemoryUsage(),
+                    cameraRegionId, regionBonusRate
+                )
+            ))
+            .orElse(null);
 
-            // 使用共享服务判断健康状态
-            if (!nodeWeightCalculator.isNodeHealthy(cpuUsage, memoryUsage)) {
-                continue;
-            }
-
-            // 检查容量
-            if (node.getMaxCameraSupport() != null
-                && node.getCurrentCameraCount() >= node.getMaxCameraSupport()) {
-                continue;
-            }
-
-            // 计算权重
-            double weight = nodeWeightCalculator.calculateWeight(node, cpuUsage, memoryUsage);
-
-            if (weight > maxWeight) {
-                maxWeight = weight;
-                optimalNode = node;
-            }
-
-            log.debug("Node {} weight: {}", node.getName(), weight);
+        if (best != null) {
+            log.info("Selected optimal edge node {} with region bonus", best.getName());
+            return best.getId();
         }
 
-        if (optimalNode == null) {
-            throw new ResourceNotFoundException("没有可用的健康边缘节点");
-        }
-
-        log.info("Selected optimal edge node {} with weight {}", optimalNode.getName(), maxWeight);
-        return optimalNode.getId();
+        // Fallback: return the first online node
+        return onlineNodes.get(0).getId();
     }
 
     @Override
@@ -621,5 +616,116 @@ public class CameraServiceImpl implements CameraService {
     @Override
     public long getCameraCountByStatus(Camera.CameraStatus status) {
         return cameraRepository.countByStatus(status);
+    }
+
+    // ========== 孤立录像管理 ==========
+
+    @Override
+    @Transactional(readOnly = true)
+    public long getOrphanedRecordingsCount() {
+        return recordingRepository.countOrphanedRecordings();
+    }
+
+    @Override
+    @Transactional
+    public int cleanupOrphanedRecordings(int daysOld) {
+        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysOld);
+        Page<Recording> recordingsToCleanup =
+                recordingRepository.findOrphanedRecordingsForCleanup(cutoffDate, Pageable.unpaged());
+
+        int count = 0;
+        for (Recording recording : recordingsToCleanup.getContent()) {
+            // 实际应该删除文件
+            recordingRepository.delete(recording);
+            count++;
+        }
+
+        log.info("Cleaned up {} orphaned recordings older than {} days", count, daysOld);
+        return count;
+    }
+
+    // ========== 统计聚合API ==========
+
+    @Override
+    @Transactional(readOnly = true)
+    public CameraStatisticsDTO getCameraStatisticsSummary(Long regionId, Long edgeNodeId, boolean forceRefresh) {
+        log.info("Fetching camera statistics summary: regionId={}, edgeNodeId={}, forceRefresh={}",
+                regionId, edgeNodeId, forceRefresh);
+
+        // 按状态统计
+        Map<String, Long> byStatus = new HashMap<>();
+        for (Camera.CameraStatus status : Camera.CameraStatus.values()) {
+            if (regionId != null) {
+                byStatus.put(status.name(), cameraRepository.countByRegionIdAndStatusAndIsDeletedFalse(regionId, status));
+            } else if (edgeNodeId != null) {
+                byStatus.put(status.name(), cameraRepository.countByStatus(status));
+            } else {
+                byStatus.put(status.name(), cameraRepository.countByStatus(status));
+            }
+        }
+
+        // 统计总数
+        long total;
+        if (regionId != null) {
+            total = cameraRepository.countByRegionIdAndIsDeletedFalse(regionId);
+        } else {
+            total = cameraRepository.countActive();
+        }
+
+        // 按节点统计
+        List<CameraStatisticsDTO.NodeStatistic> byEdgeNode = buildNodeStatistics(edgeNodeId);
+
+        // 录像统计
+        CameraStatisticsDTO.RecordingStatistics recordingStats = CameraStatisticsDTO.RecordingStatistics.builder()
+                .totalRecordings(recordingRepository.count())
+                .orphanedRecordings(recordingRepository.countOrphanedRecordings())
+                .deletedRecordings(recordingRepository.countDeletedRecordings())
+                .totalStorageSize(recordingRepository.sumTotalStorageSize())
+                .build();
+
+        return CameraStatisticsDTO.builder()
+                .total(total)
+                .byStatus(byStatus)
+                .byEdgeNode(byEdgeNode)
+                .recordingStatistics(recordingStats)
+                .cachedAt(LocalDateTime.now())
+                .build();
+    }
+
+    @Override
+    public void refreshStatisticsCache() {
+        log.info("Refreshing camera statistics cache");
+        // 在实际实现中，这里会将统计数据刷新到 Redis
+        // 目前是占位实现
+    }
+
+    /**
+     * 构建按节点统计信息
+     */
+    private List<CameraStatisticsDTO.NodeStatistic> buildNodeStatistics(Long filterEdgeNodeId) {
+        List<EdgeNode> nodes;
+        if (filterEdgeNodeId != null) {
+            nodes = edgeNodeRepository.findAll().stream()
+                    .filter(n -> n.getId().equals(filterEdgeNodeId))
+                    .collect(Collectors.toList());
+        } else {
+            nodes = edgeNodeRepository.findAll();
+        }
+
+        return nodes.stream()
+                .map(node -> {
+                    List<Camera> cameras = cameraRepository.findByEdgeNodeId(node.getId());
+                    long onlineCount = cameras.stream()
+                            .filter(c -> c.getStatus() == Camera.CameraStatus.ONLINE)
+                            .count();
+
+                    return CameraStatisticsDTO.NodeStatistic.builder()
+                            .edgeNodeId(node.getId())
+                            .edgeNodeName(node.getName())
+                            .cameraCount(cameras.size())
+                            .onlineCount(onlineCount)
+                            .build();
+                })
+                .collect(Collectors.toList());
     }
 }

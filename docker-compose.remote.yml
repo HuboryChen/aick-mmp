@@ -1,0 +1,180 @@
+# 远程部署配置文件
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: aick-mmp-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: aick_mmp
+      MYSQL_USER: aickuser
+      MYSQL_PASSWORD: aickpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - aick-network
+
+  redis:
+    image: redis:6.2-alpine
+    container_name: aick-mmp-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - aick-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: aick-mmp-zookeeper
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - aick-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: aick-mmp-kafka
+    restart: always
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    networks:
+      - aick-network
+
+  janus:
+    image: canyan/janus-gateway:latest
+    container_name: aick-mmp-janus
+    restart: always
+    ports:
+      - "8088:8088"
+      - "8188:8188"
+      - "8089:8089"
+      - "10000-10200:10000-10200/udp"
+    volumes:
+      - janus-data:/var/lib/janus
+    networks:
+      - aick-network
+
+  rtsp-server:
+    image: bluenviron/mediamtx:latest
+    container_name: aick-mmp-rtsp-server
+    restart: always
+    ports:
+      - "8554:8554"
+      - "1935:1935"
+      - "8888:8888"
+    networks:
+      - aick-network
+
+  central-1:
+    image: aick-mmp-central:latest
+    container_name: aick-mmp-central-1
+    restart: always
+    depends_on:
+      - mysql
+      - redis
+      - kafka
+      - janus
+    environment:
+      SPRING_PROFILES_ACTIVE: central
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8&useUnicode=true
+      SPRING_DATASOURCE_USERNAME: aickuser
+      SPRING_DATASOURCE_PASSWORD: aickpassword
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      JANUS_SERVER_URL: http://janus:8088/janus
+      JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
+    volumes:
+      - central-1-data:/app/data
+    networks:
+      - aick-network
+
+  central-lb:
+    image: nginx:alpine
+    container_name: aick-mmp-central-lb
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/central-lb.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - central-1
+    networks:
+      - aick-network
+
+  frontend:
+    image: nginx:alpine
+    container_name: aick-mmp-frontend
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./frontend/build:/usr/share/nginx/html:ro
+      - ./nginx/frontend.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - central-lb
+    networks:
+      - aick-network
+
+  edge-node-1:
+    image: aick-mmp-edge:latest
+    container_name: aick-mmp-edge-node-1
+    restart: always
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: edge
+      NODE_ID: node-1
+      REGION: region-a
+      SERVER_PORT: 8080
+      CENTRAL_SERVER_URL: http://central-lb
+      REGISTRY_SERVER: http://central-lb
+      HEARTBEAT_INTERVAL: 30
+      JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
+    volumes:
+      - edge-node-1-data:/app/data
+    depends_on:
+      - redis
+      - central-lb
+    networks:
+      - aick-network
+
+  edge-lb:
+    image: nginx:alpine
+    container_name: aick-mmp-edge-lb
+    restart: always
+    ports:
+      - "8083:80"
+    volumes:
+      - ./nginx/edge-lb.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - edge-node-1
+    networks:
+      - aick-network
+
+networks:
+  aick-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  janus-data:
+  central-1-data:
+  edge-node-1-data:

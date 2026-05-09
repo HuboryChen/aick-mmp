@@ -174,6 +174,84 @@ graph TD
 
 ### 3.1 用户认证与权限管理
 
+#### 3.1.1 认证体系概述
+
+系统支持两种认证方式：
+- **JWT认证**：适用于前端用户登录
+- **AK/SK认证**：适用于Edge节点和系统间通信
+
+#### 3.1.2 JWT认证流程
+
+```mermaid
+sequenceDiagram
+    participant Client as 前端客户端
+    participant Filter as CombinedAuthFilter
+    participant JwtUtil as JwtUtil
+    participant Central as 中央服务
+    participant Redis as Redis缓存
+
+    Client->>Filter: 请求(带Bearer Token)
+    Filter->>JwtUtil: 验证Token
+    JwtUtil->>Redis: 检查Token是否有效
+    Redis-->>JwtUtil: 返回验证结果
+    JwtUtil-->>Filter: Token有效
+    Filter->>Central: 设置SecurityContext
+    Central-->>Client: 返回受保护资源
+```
+
+#### 3.1.3 AK/SK认证流程
+
+```mermaid
+sequenceDiagram
+    participant Edge as Edge节点
+    participant Filter as CombinedAuthFilter
+    participant ApiKeyService as ApiKeyService
+    participant Central as 中央服务
+    participant Redis as Redis缓存
+
+    Edge->>Filter: 请求(X-Access-Key, X-Signature, X-Timestamp)
+    Filter->>Filter: 验证时间戳
+    Filter->>ApiKeyService: 获取解密SK
+    ApiKeyService->>Redis: 检查缓存
+    alt 缓存命中
+        Redis-->>ApiKeyService: 返回SK
+    else 缓存未命中
+        ApiKeyService->>ApiKeyService: 从DB解密
+        ApiKeyService->>Redis: 缓存SK(5分钟TTL)
+    end
+    ApiKeyService-->>Filter: 返回SK
+    Filter->>Filter: 验证签名
+    Filter->>Central: 设置UnifiedPrincipal
+    Central-->>Edge: 返回受保护资源
+```
+
+#### 3.1.4 签名字符串构造
+
+```
+StringToSign = HTTP_METHOD + "\n" + REQUEST_PATH + "\n" + TIMESTAMP
+
+示例:
+POST
+/api/edge/register
+2026-04-05T10:00:00Z
+```
+
+签名算法：HMAC-SHA256，结果Base64编码
+
+### 3.2 统一身份（UnifiedPrincipal）
+
+为了支持JWT和AK/SK两种认证方式的统一授权，系统引入了UnifiedPrincipal：
+
+```java
+UnifiedPrincipal {
+    identityId: String        // 用户ID或API Key ID
+    identityType: Enum       // USER / SYSTEM_APP
+    authMethod: Enum         // JWT / API_KEY
+    role: String             // 角色（如ADMIN、OPERATOR）
+    permissions: Set         // 权限集合
+}
+```
+
 ```mermaid
 sequenceDiagram
     participant Client as 客户端
@@ -304,17 +382,43 @@ graph TB
 
 ## 6. 安全架构
 
-### 6.1 模块间安全通信
+### 6.1 认证体系
+
+#### 6.1.1 认证方式
+
+| 认证方式 | 适用场景 | 实现方式 |
+|----------|----------|----------|
+| JWT认证 | 前端用户登录 | Bearer Token |
+| AK/SK认证 | Edge节点、系统间通信 | HTTP头签名 |
+
+#### 6.1.2 密钥管理
+
+| 密钥类型 | 存储方式 | 安全措施 |
+|----------|----------|----------|
+| JWT密钥 | Redis | 定期轮换 |
+| SK（用户） | AES-256-GCM加密 | 主密钥配置化 |
+| SK（系统） | AES-256-GCM加密 | 主密钥配置化+Redis缓存 |
+
+#### 6.1.3 Edge节点认证
+
+- 超级管理员创建SystemApp
+- 为SystemApp生成ApiKey（AK/SK）
+- Edge节点配置AK/SK
+- 所有请求携带签名头
+
+### 6.2 模块间安全通信
 
 - **JWT认证**：中央服务与前端通信
-- **服务间认证**：内部模块间API调用认证
+- **AK/SK认证**：Edge节点与中央服务通信
 - **设备认证**：边缘节点与设备间的安全连接
 
-### 6.2 数据安全
+### 6.3 数据安全
 
 - **传输加密**：TLS/SSL加密所有网络通信
-- **存储加密**：敏感数据数据库级加密
-- **访问控制**：基于角色的细粒度权限控制
+- **存储加密**：敏感数据数据库级加密（SK使用AES-256-GCM）
+- **访问控制**：基于角色的细粒度权限控制（RBAC）
+- **签名验证**：HMAC-SHA256防篡改
+- **时间戳验证**：防止重放攻击（±5分钟容差）
 
 ## 7. 监控与运维
 

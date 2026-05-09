@@ -5,9 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -28,8 +29,24 @@ public class RegionDTO {
     private String description;
 
     private Long parentId;
-
+    
+    private Integer level;
+    
+    private String path;
+    
+    private Integer sortOrder;
+    
     private LocalDateTime createdAt;
-
+    
     private LocalDateTime updatedAt;
+    
+    private LocalDateTime deletedAt;
+    
+    private List<RegionDTO> children;
+    
+    private Long cameraCount;
+    
+    private Long onlineCameraCount;
+    
+    private Long childRegionCount;
 }

@@ -1,0 +1,21 @@
+[
+  {"brand":"海康威视","model":"DS-2CD2T45D-I5","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/Streaming/Channels/{channel}01","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"海康威视","model":"DS-2CD2146G2-I","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/Streaming/Channels/{channel}01","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"海康威视","model":"DS-2DE5232-AE","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/Streaming/Channels/{channel}01","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"大华","model":"DH-IPC-HFW2431T-ZS","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/cam/realmonitor?channel={channel}&subtype=0","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"大华","model":"DH-IPC-HDBW2431R-ZS","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/cam/realmonitor?channel={channel}&subtype=0","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"大华","model":"SD-22204-DT","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/cam/realmonitor?channel={channel}&subtype=0","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"宇视","model":"IPC-B2241-I","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/Streaming/channels/{channel}01","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"宇视","model":"IPC-B2421-S","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/Streaming/channels/{channel}01","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"天地伟业","model":"TC-NC313T","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/h264/ch1/main/av_stream","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"天地伟业","model":"TC-NC8234","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/h264/ch1/main/av_stream","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"华为","model":"C2120-I-P","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/live/{channel}","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"华为","model":"C3221-I-P","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/live/{channel}","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"TP-LINK","model":"TL-IPC546HP","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/stream1","presetParameters":"{}","isPreset":true},
+  {"brand":"TP-LINK","model":"TL-IPC44AN","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}/stream1","presetParameters":"{}","isPreset":true},
+  {"brand":"General","model":"RTSP Camera","protocol":"RTSP","defaultPort":554,"urlPathTemplate":"rtsp://{username}:{password}@{ip}:{port}","presetParameters":"{}","isPreset":true},
+  {"brand":"General","model":"ONVIF Camera","protocol":"ONVIF","defaultPort":80,"urlPathTemplate":"http://{ip}:{port}/onvif/device_service","presetParameters":"{}","isPreset":true},
+  {"brand":"General","model":"HTTP Camera","protocol":"HTTP","defaultPort":80,"urlPathTemplate":"http://{username}:{password}@{ip}:{port}/video","presetParameters":"{}","isPreset":true},
+  {"brand":"General","model":"RTMP Camera","protocol":"RTMP","defaultPort":1935,"urlPathTemplate":"rtmp://{username}:{password}@{ip}:{port}/live/{channel}","presetParameters":"{\"channel\":\"1\"}","isPreset":true},
+  {"brand":"General","model":"GB28181 Camera","protocol":"GB28181","defaultPort":5060,"urlPathTemplate":"sip://{ip}:{port}","presetParameters":"{}","isPreset":true}
+]

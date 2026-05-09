@@ -17,6 +17,7 @@ import java.util.Optional;
 public interface CameraRepository extends JpaRepository<Camera, Long> {
     Page<Camera> findByLocation(String location, Pageable pageable);
     Page<Camera> findByEdgeNodeId(Long edgeNodeId, Pageable pageable);
+    List<Camera> findByEdgeNodeId(Long edgeNodeId);
     Page<Camera> findByStatus(Camera.CameraStatus status, Pageable pageable);
     List<Camera> findByStatus(Camera.CameraStatus status);
     List<Camera> findByEdgeNodeIdAndStatus(Long edgeNodeId, Camera.CameraStatus status);
@@ -66,9 +67,9 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
     List<Camera> findAllActive();
 
     /**
-     * 查询所有已删除的摄像头
+     * 查询所有已删除的摄像头（使用 nativeQuery 以绕过 @Where 过滤器）
      */
-    @Query("SELECT c FROM Camera c WHERE c.deletedAt IS NOT NULL")
+    @Query(value = "SELECT * FROM cameras WHERE deleted_at IS NOT NULL", nativeQuery = true)
     List<Camera> findAllDeleted();
 
     /**
@@ -94,6 +95,14 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
     @Query("SELECT COUNT(c) FROM Camera c WHERE c.deletedAt IS NULL AND c.edgeNodeId = :edgeNodeId")
     long countByEdgeNodeIdAndDeletedAtIsNull(@Param("edgeNodeId") Long edgeNodeId);
 
+    // ============ 绕过 @Where 过滤器的查询方法 ============
+
+    /**
+     * 根据ID查询摄像头（包括已删除的，用于恢复/强制删除操作）
+     */
+    @Query(value = "SELECT * FROM cameras WHERE id = :id", nativeQuery = true)
+    Optional<Camera> findByIdIncludingDeleted(@Param("id") Long id);
+
     // ============ 使用 @EntityGraph 优化 N+1 查询 ============
 
     /**
@@ -107,11 +116,13 @@ public interface CameraRepository extends JpaRepository<Camera, Long> {
      * 根据ID查询未删除摄像头（预加载关联数据）
      */
     @EntityGraph(attributePaths = {"edgeNode", "region"})
-    Optional<Camera> findByIdAndDeletedAtIsNullWithDetails(Long id);
+    @Query("SELECT c FROM Camera c WHERE c.id = :id AND c.deletedAt IS NULL")
+    Optional<Camera> findByIdAndDeletedAtIsNullWithDetails(@Param("id") Long id);
 
     /**
      * 查询特定节点上未删除的在线摄像头（预加载关联数据）
      */
     @EntityGraph(attributePaths = {"edgeNode", "region"})
-    List<Camera> findByEdgeNodeIdAndStatusWithDetails(Long edgeNodeId, Camera.CameraStatus status);
+    @Query("SELECT c FROM Camera c WHERE c.edgeNodeId = :edgeNodeId AND c.status = :status AND c.deletedAt IS NULL")
+    List<Camera> findByEdgeNodeIdAndStatusWithDetails(@Param("edgeNodeId") Long edgeNodeId, @Param("status") Camera.CameraStatus status);
 }

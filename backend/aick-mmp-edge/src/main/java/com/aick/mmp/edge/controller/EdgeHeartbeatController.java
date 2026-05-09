@@ -94,4 +94,32 @@ public class EdgeHeartbeatController {
     public ResponseEntity<String> healthCheck() {
         return ResponseEntity.ok("Edge node is healthy");
     }
+
+    @PostMapping("/restart")
+    @Operation(summary = "Restart edge node service (graceful shutdown)")
+    public ResponseEntity<String> restartNode() {
+        try {
+            logger.info("Received restart command from central server");
+            // 停止心跳监控
+            edgeHeartbeatService.stopHeartbeatMonitoring();
+
+            // 在新线程中执行重启，延迟一点让响应先返回
+            new Thread(() -> {
+                try {
+                    Thread.sleep(1000);
+                    logger.info("Edge node initiating graceful shutdown for restart");
+                    // 退出应用，让容器/进程管理器自动重启
+                    System.exit(0);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.error("Restart interrupted", e);
+                }
+            }).start();
+
+            return ResponseEntity.ok("Restart command accepted. Node will restart shortly.");
+        } catch (Exception e) {
+            logger.error("Error processing restart command", e);
+            return ResponseEntity.internalServerError().body("Error processing restart: " + e.getMessage());
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.aick.mmp.edge.dto;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
+import java.util.List;
 import java.util.Map;
 
 public class HeartbeatRequest {
@@ -22,6 +23,7 @@ public class HeartbeatRequest {
     private Integer currentCameraCount;
     private Map<String, Object> systemMetrics;
     private Map<String, Object> networkMetrics;
+    private List<Map<String, Object>> cameraStatuses;  // 摄像头状态列表 [新增]
     
     // Constructors
     public HeartbeatRequest() {}
@@ -104,5 +106,13 @@ public class HeartbeatRequest {
     
     public void setNetworkMetrics(Map<String, Object> networkMetrics) {
         this.networkMetrics = networkMetrics;
+    }
+    
+    public List<Map<String, Object>> getCameraStatuses() {
+        return cameraStatuses;
+    }
+    
+    public void setCameraStatuses(List<Map<String, Object>> cameraStatuses) {
+        this.cameraStatuses = cameraStatuses;
     }
 }

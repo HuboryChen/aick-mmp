@@ -1,7 +1,7 @@
 package com.aick.mmp.central.dto;
 
 import lombok.Data;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.time.LocalDateTime;
 
 @Data

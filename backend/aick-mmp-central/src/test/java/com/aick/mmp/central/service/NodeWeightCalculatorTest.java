@@ -1,9 +1,12 @@
 package com.aick.mmp.central.service;
 
+import com.aick.mmp.shared.model.EdgeNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -131,7 +134,7 @@ class NodeWeightCalculatorTest {
         @DisplayName("健康节点返回正权重")
         void healthyNode_returnsPositiveWeight() {
             // 创建一个模拟节点
-            com.aick.mmp.shared.model.EdgeNode node = com.aick.mmp.shared.model.EdgeNode.builder()
+            EdgeNode node = EdgeNode.builder()
                     .currentCameraCount(5)
                     .maxCameraSupport(20)
                     .build();
@@ -142,13 +145,96 @@ class NodeWeightCalculatorTest {
         @Test
         @DisplayName("低负载节点权重高于高负载节点")
         void lowLoadNode_hasHigherWeight() {
-            com.aick.mmp.shared.model.EdgeNode node = com.aick.mmp.shared.model.EdgeNode.builder()
+            EdgeNode node = EdgeNode.builder()
                     .currentCameraCount(5)
                     .maxCameraSupport(20)
                     .build();
             double lowLoadWeight = calculator.calculateWeight(node, 30.0, 40.0);
             double highLoadWeight = calculator.calculateWeight(node, 70.0, 75.0);
             assertTrue(lowLoadWeight > highLoadWeight);
+        }
+    }
+
+    @Nested
+    @DisplayName("calculateWeightWithRegionBonus")
+    class CalculateWeightWithRegionBonusTests {
+
+        @Test
+        @DisplayName("同区域节点获得加成")
+        void sameRegion_getsBonus() {
+            EdgeNode node = EdgeNode.builder()
+                    .currentCameraCount(5).maxCameraSupport(20)
+                    .regionId(1L)
+                    .lastHeartbeatTime(LocalDateTime.now())
+                    .build();
+
+            double baseWeight = calculator.calculateWeight(node, 50.0, 60.0);
+            double bonusWeight = calculator.calculateWeightWithRegionBonus(
+                    node, 50.0, 60.0, 1L, 0.3);
+
+            assertEquals(baseWeight * 1.3, bonusWeight, 0.001);
+        }
+
+        @Test
+        @DisplayName("不同区域节点无加成")
+        void differentRegion_noBonus() {
+            EdgeNode node = EdgeNode.builder()
+                    .currentCameraCount(5).maxCameraSupport(20)
+                    .regionId(2L)
+                    .lastHeartbeatTime(LocalDateTime.now())
+                    .build();
+
+            double baseWeight = calculator.calculateWeight(node, 50.0, 60.0);
+            double noBonusWeight = calculator.calculateWeightWithRegionBonus(
+                    node, 50.0, 60.0, 1L, 0.3);
+
+            assertEquals(baseWeight, noBonusWeight, 0.001);
+        }
+
+        @Test
+        @DisplayName("源区域为NULL时无加成")
+        void nullSourceRegion_noBonus() {
+            EdgeNode node = EdgeNode.builder()
+                    .currentCameraCount(5).maxCameraSupport(20)
+                    .regionId(1L)
+                    .lastHeartbeatTime(LocalDateTime.now())
+                    .build();
+
+            double baseWeight = calculator.calculateWeight(node, 50.0, 60.0);
+            double result = calculator.calculateWeightWithRegionBonus(
+                    node, 50.0, 60.0, null, 0.3);
+
+            assertEquals(baseWeight, result, 0.001);
+        }
+
+        @Test
+        @DisplayName("加成率为0时无加成")
+        void zeroBonusRate_noBonus() {
+            EdgeNode node = EdgeNode.builder()
+                    .currentCameraCount(5).maxCameraSupport(20)
+                    .regionId(1L)
+                    .lastHeartbeatTime(LocalDateTime.now())
+                    .build();
+
+            double baseWeight = calculator.calculateWeight(node, 50.0, 60.0);
+            double result = calculator.calculateWeightWithRegionBonus(
+                    node, 50.0, 60.0, 1L, 0.0);
+
+            assertEquals(baseWeight, result, 0.001);
+        }
+
+        @Test
+        @DisplayName("不健康节点即使同区域也得0分")
+        void unhealthyNode_sameRegion_stillZero() {
+            EdgeNode node = EdgeNode.builder()
+                    .currentCameraCount(5).maxCameraSupport(20)
+                    .regionId(1L)
+                    .build();
+
+            double result = calculator.calculateWeightWithRegionBonus(
+                    node, 85.0, 50.0, 1L, 0.3);
+
+            assertEquals(0.0, result, 0.001);
         }
     }
 }

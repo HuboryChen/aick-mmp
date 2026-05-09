@@ -1,8 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import Cookies from 'js-cookie';
 import axiosInstance from '../utils/axios';
 
-const useAuth = () => {
+// 创建 Context
+const AuthContext = createContext(null);
+
+// Provider 组件
+export function AuthProvider({ children }) {
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -15,7 +19,6 @@ const useAuth = () => {
         setUserInfo(response.data);
       } catch (error) {
         console.error('Auth check failed:', error);
-        // 清除无效的token
         Cookies.remove('token');
         setUserInfo(null);
       } finally {
@@ -40,7 +43,6 @@ const useAuth = () => {
       }
     } catch (error) {
       console.error('Login failed:', error);
-      // 确保在登录失败时清除可能存在的无效token
       Cookies.remove('token');
       setUserInfo(null);
       return { success: false, error: error.response?.data?.message || error.message };
@@ -56,14 +58,29 @@ const useAuth = () => {
     checkAuth();
   }, [checkAuth]);
 
-  return { 
-    userInfo, 
-    loading, 
-    login, 
-    logout, 
+  const value = useMemo(() => ({
+    userInfo,
+    loading,
+    login,
+    logout,
     checkAuth,
     isAuthenticated: !!userInfo
-  };
+  }), [userInfo, loading, login, logout, checkAuth]);
+
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// 自定义 Hook
+const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within AuthProvider');
+  }
+  return context;
 };
 
 export default useAuth;

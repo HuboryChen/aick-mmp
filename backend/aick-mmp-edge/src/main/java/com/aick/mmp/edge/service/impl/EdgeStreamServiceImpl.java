@@ -4,6 +4,7 @@ import com.aick.mmp.shared.adapter.protocol.ProtocolAdapter;
 import com.aick.mmp.shared.adapter.protocol.ProtocolAdapterFactory;
 import com.aick.mmp.edge.config.EdgeNodeConfig;
 import com.aick.mmp.edge.dto.EdgeCameraDTO;
+import com.aick.mmp.edge.event.StreamFailedEvent;
 import com.aick.mmp.edge.dto.EdgeStreamDTO;
 import com.aick.mmp.edge.service.EdgeCameraService;
 import com.aick.mmp.edge.service.EdgeStreamService;
@@ -11,12 +12,14 @@ import com.aick.mmp.shared.model.Camera;
 import com.aick.mmp.shared.model.StreamSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +38,18 @@ public class EdgeStreamServiceImpl implements EdgeStreamService {
     private final EdgeNodeConfig edgeNodeConfig;
     private final EdgeCameraService edgeCameraService;
     private final ProtocolAdapterFactory protocolAdapterFactory;
-    
+    private final ApplicationEventPublisher eventPublisher;
+
+    // Reconnect configuration
+    @Value("${stream.reconnect.max-retries:3}")
+    private int maxRetries;
+
+    @Value("${stream.reconnect.enabled:true}")
+    private boolean reconnectEnabled;
+
+    @Value("${stream.reconnect.retry-interval-seconds:60}")
+    private long retryIntervalSeconds;
+
     // Local stream storage
     private final Map<String, EdgeStreamDTO> activeStreams = new ConcurrentHashMap<>();
     private final Map<String, Map<String, Object>> streamMetrics = new ConcurrentHashMap<>();
@@ -85,10 +99,10 @@ public class EdgeStreamServiceImpl implements EdgeStreamService {
             
             // Convert to Camera entity for adapter
             Camera cameraEntity = convertToEntity(camera);
-            
+
             // Start stream session
-            String adapterSessionId = adapter.startStreamSession(cameraEntity);
-            
+            adapter.startStreamSession(cameraEntity);
+
             // Create stream DTO
             EdgeStreamDTO streamDTO = EdgeStreamDTO.builder()
                     .sessionId(sessionId)
@@ -233,10 +247,23 @@ public class EdgeStreamServiceImpl implements EdgeStreamService {
         if (stream != null) {
             stream.setStatus(status);
             stream.setLastHeartbeat(LocalDateTime.now());
-            
+
             if (status == StreamSession.StreamStatus.ERROR) {
                 stream.setActive(false);
                 stream.setConnectionRetries(stream.getConnectionRetries() + 1);
+
+                // 发布流失败事件，触发异步重连（仅在支持重连时）
+                if (reconnectEnabled && stream.getConnectionRetries() < maxRetries) {
+                    StreamFailedEvent event = new StreamFailedEvent(
+                            this,
+                            stream.getCameraId(),
+                            edgeNodeConfig.getNodeId(),
+                            "STREAM_ERROR",
+                            stream.getErrorMessage()
+                    );
+                    eventPublisher.publishEvent(event);
+                    log.debug("Published StreamFailedEvent for camera: {}", stream.getCameraId());
+                }
             }
         }
     }
@@ -269,19 +296,23 @@ public class EdgeStreamServiceImpl implements EdgeStreamService {
     }
 
     @Override
-    @Scheduled(fixedDelay = 60000) // 1 minute
+    @Scheduled(fixedDelayString = "${stream.reconnect.retry-interval-seconds:60}000")
     public void restartFailedStreams() {
+        if (!reconnectEnabled) {
+            return;
+        }
+
         log.debug("Checking for failed streams to restart");
-        
+
         List<EdgeStreamDTO> failedStreams = activeStreams.values().stream()
                 .filter(stream -> stream.getStatus() == StreamSession.StreamStatus.ERROR)
-                .filter(stream -> stream.getConnectionRetries() < 3)
+                .filter(stream -> stream.getConnectionRetries() < maxRetries)
                 .collect(Collectors.toList());
-        
+
         for (EdgeStreamDTO stream : failedStreams) {
-            log.info("Attempting to restart failed stream: {}", stream.getSessionId());
+            log.info("Attempting to restart failed stream: {} (attempt {}/{})",
+                    stream.getSessionId(), stream.getConnectionRetries() + 1, maxRetries);
             try {
-                // Attempt to restart stream
                 restartStream(stream);
             } catch (Exception e) {
                 log.error("Failed to restart stream {}: {}", stream.getSessionId(), e.getMessage());
@@ -431,19 +462,91 @@ public class EdgeStreamServiceImpl implements EdgeStreamService {
         }
     }
 
+    /**
+     * 真正执行流重建 - 停止旧会话，建立新连接
+     */
     private void restartStream(EdgeStreamDTO stream) {
-        // Implement stream restart logic
-        log.info("Restarting stream: {}", stream.getSessionId());
-        
-        // Update retry count
-        stream.setConnectionRetries(stream.getConnectionRetries() + 1);
-        stream.setStatus(StreamSession.StreamStatus.CONNECTING);
-        
-        // In a real implementation, this would attempt to reconnect the stream
-        // For now, just simulate a successful restart
-        stream.setStatus(StreamSession.StreamStatus.STREAMING);
-        stream.setActive(true);
-        stream.setLastHeartbeat(LocalDateTime.now());
+        Long cameraId = stream.getCameraId();
+        log.info("Attempting to restart stream for camera: {}, attempt: {}",
+                cameraId, stream.getConnectionRetries() + 1);
+
+        try {
+            // 1. 更新状态为 CONNECTING
+            stream.setStatus(StreamSession.StreamStatus.CONNECTING);
+            stream.setConnectionRetries(stream.getConnectionRetries() + 1);
+
+            // 2. 获取摄像头信息
+            Optional<EdgeCameraDTO> cameraOpt = edgeCameraService.getCameraById(cameraId);
+            if (cameraOpt.isEmpty()) {
+                log.error("Camera not found for restart: {}", cameraId);
+                stream.setStatus(StreamSession.StreamStatus.ERROR);
+                stream.setErrorMessage("Camera not found: " + cameraId);
+                return;
+            }
+
+            EdgeCameraDTO camera = cameraOpt.get();
+
+            // 3. 获取协议适配器并停止旧会话
+            ProtocolAdapter adapter = protocolAdapterFactory.getAdapter(camera.getProtocol().name());
+            if (adapter == null) {
+                log.error("No protocol adapter found for: {}", camera.getProtocol());
+                stream.setStatus(StreamSession.StreamStatus.ERROR);
+                stream.setErrorMessage("No protocol adapter for: " + camera.getProtocol());
+                return;
+            }
+
+            // 停止旧会话
+            if (stream.getSessionId() != null) {
+                try {
+                    adapter.stopStreamSession(stream.getSessionId());
+                    log.debug("Stopped old session: {}", stream.getSessionId());
+                } catch (Exception e) {
+                    log.warn("Error stopping old session {}: {}", stream.getSessionId(), e.getMessage());
+                }
+            }
+
+            // 4. 等待一小段时间（避免立即重连）
+            Thread.sleep(1000L * stream.getConnectionRetries());
+
+            // 5. 建立新的流会话
+            Camera camModel = Camera.builder()
+                    .id(camera.getId())
+                    .name(camera.getName())
+                    .location(camera.getLocation())
+                    .connectionUrl(camera.getConnectionUrl())
+                    .username(camera.getUsername())
+                    .password(camera.getPassword())
+                    .protocol(camera.getProtocol())
+                    .resolution(stream.getResolution())
+                    .bitrate((int) stream.getBitrate())
+                    .frameRate((int) stream.getFrameRate())
+                    .build();
+
+            String newSessionId = adapter.startStreamSession(camModel);
+            log.info("Started new stream session: {} for camera: {}", newSessionId, cameraId);
+
+            // 6. 更新流状态
+            stream.setSessionId(newSessionId);
+            stream.setStatus(StreamSession.StreamStatus.STREAMING);
+            stream.setActive(true);
+            stream.setLastHeartbeat(LocalDateTime.now());
+            stream.setErrorMessage(null);
+            stream.setConnectionRetries(0); // 重置重试计数
+
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+            stream.setStatus(StreamSession.StreamStatus.ERROR);
+            stream.setErrorMessage("Restart interrupted");
+            log.error("Restart interrupted for camera: {}", cameraId);
+        } catch (Exception e) {
+            log.error("Failed to restart stream for camera {}: {}", cameraId, e.getMessage());
+            stream.setStatus(StreamSession.StreamStatus.ERROR);
+            stream.setErrorMessage(e.getMessage());
+
+            if (stream.getConnectionRetries() >= maxRetries) {
+                log.warn("Max retries ({}) reached for camera: {}, giving up", maxRetries, cameraId);
+            }
+        }
     }
 
     private Camera convertToEntity(EdgeCameraDTO dto) {

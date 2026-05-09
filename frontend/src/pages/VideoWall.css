@@ -1,23 +1,23 @@
-/* VideoWall.css */
+/* VideoWall Industrial Theme Styles */
 
 .video-wall-container {
   min-height: 100vh;
-  background: #f0f2f5;
+  background: var(--color-bg-primary);
 }
 
 .video-wall-header {
-  background: white;
-  padding: 16px 24px;
-  margin-bottom: 16px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--color-bg-secondary);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .video-wall-content {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .video-wall-grid {
@@ -26,69 +26,84 @@
   min-height: 60vh;
 }
 
+/* Video Control Button - use CSS variable for theme compatibility */
+.video-control-btn {
+  border-color: var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.video-control-btn:hover {
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
 .video-cell {
   height: 100%;
   min-height: 200px;
   padding: 4px;
+  transition: all 0.3s ease;
 }
 
 .video-stream-card {
   height: 100% !important;
-  border: 1px solid #d9d9d9;
-  transition: all 0.3s;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 
 .video-stream-card:hover {
-  border-color: #1890ff;
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
 }
 
 .video-stream-card.error {
-  border-color: #ff4d4f;
+  border-color: var(--status-offline);
 }
 
 .video-stream-card.selected {
-  border-color: #1890ff;
+  border-color: var(--color-accent);
   border-width: 2px;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  box-shadow: var(--shadow-glow-strong);
 }
 
 .empty-video-cell {
   height: 100%;
   min-height: 200px;
-  border: 2px dashed #d9d9d9;
-  border-radius: 6px;
+  border: 2px dashed var(--color-border);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #fafafa;
+  background: var(--color-bg-elevated);
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
 }
 
 .empty-video-cell:hover {
-  border-color: #1890ff;
-  background: #f0f8ff;
+  border-color: var(--color-accent);
+  background: var(--color-accent-muted);
 }
 
 .empty-video-cell .anticon {
   font-size: 48px;
-  color: #d9d9d9;
+  color: var(--color-text-muted);
   margin-bottom: 16px;
-  transition: color 0.3s;
+  transition: all 0.3s ease;
 }
 
 .empty-video-cell:hover .anticon {
-  color: #1890ff;
+  color: var(--color-accent);
+  transform: scale(1.1);
 }
 
 .control-panel {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: 8px;
   padding: 16px;
   margin-left: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-border);
   height: fit-content;
   min-width: 280px;
 }
@@ -133,14 +148,16 @@
   background: rgba(0, 0, 0, 0.7);
   border: none;
   color: white;
+  backdrop-filter: blur(4px);
+  border-radius: 6px;
 }
 
 .fullscreen-button:hover {
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 212, 255, 0.3);
   color: white;
 }
 
-/* 全屏模式样式 */
+/* Fullscreen Mode Styles */
 .video-wall-fullscreen {
   position: fixed !important;
   top: 0;
@@ -161,62 +178,13 @@
   min-height: unset;
 }
 
-/* 摄像头选择器样式 */
+/* Camera Selector */
 .selected-camera {
-  border-color: #1890ff !important;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  border-color: var(--color-accent) !important;
+  box-shadow: var(--shadow-glow);
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .control-panel {
-    margin-left: 0;
-    margin-top: 16px;
-    min-width: unset;
-  }
-}
-
-@media (max-width: 768px) {
-  .video-wall-header {
-    padding: 12px 16px;
-  }
-  
-  .video-cell {
-    min-height: 150px;
-  }
-  
-  .empty-video-cell {
-    min-height: 150px;
-  }
-  
-  .empty-video-cell .anticon {
-    font-size: 32px;
-    margin-bottom: 12px;
-  }
-  
-  .control-panel {
-    padding: 12px;
-  }
-}
-
-/* 加载动画 */
-@keyframes pulse {
-  0% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.4;
-  }
-}
-
-.loading-video {
-  animation: pulse 2s infinite;
-}
-
-/* 状态指示器 */
+/* Status Indicator */
 .status-indicator {
   position: absolute;
   top: 8px;
@@ -230,21 +198,22 @@
 }
 
 .status-indicator.live {
-  background: #ff4d4f;
+  background: var(--status-offline);
   color: white;
+  animation: pulse-glow 2s ease-in-out infinite;
 }
 
 .status-indicator.recording {
-  background: #52c41a;
+  background: var(--status-online);
   color: white;
 }
 
 .status-indicator.offline {
-  background: #8c8c8c;
+  background: var(--color-text-muted);
   color: white;
 }
 
-/* 网格布局优化 */
+/* Grid Layout Optimization */
 .video-grid-1x1 .video-cell {
   min-height: 60vh;
 }
@@ -259,4 +228,323 @@
 
 .video-grid-4x4 .video-cell {
   min-height: 13vh;
+}
+
+/* Loading Animation */
+@keyframes pulse {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 4px var(--status-online), 0 0 8px var(--status-online);
+  }
+  50% {
+    box-shadow: 0 0 8px var(--status-online), 0 0 16px var(--status-online);
+  }
+}
+
+.loading-video {
+  animation: pulse 2s infinite;
+}
+
+/* ============================================ */
+/* Styles migrated from VideoWall.js <style> tag */
+/* Phase 2 Task 10.2 cleanup                  */
+/* ============================================ */
+
+/* Video Wall Container (JS inline) */
+.video-wall-container {
+  height: calc(100vh - 64px);
+  min-height: 400px;
+  transition: all 0.3s ease;
+}
+
+.video-wall-container.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background: #000;
+}
+
+/* Header Left Section */
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.camera-count {
+  margin-left: 12px;
+  padding: 4px 10px;
+  background: var(--color-accent-muted);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+/* Header Controls */
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-btn {
+  background: var(--color-bg-elevated) !important;
+  border: 1px solid var(--color-border) !important;
+  color: var(--color-text-primary) !important;
+}
+
+.control-btn:hover {
+  border-color: var(--color-accent) !important;
+  color: var(--color-accent) !important;
+}
+
+/* Video Grid Container */
+.video-grid-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8px; /* 添加内边距防止卡片的 border-radius 被裁剪 */
+  box-sizing: border-box;
+  /* gap: 8px; 移至 Row gutter 统一控制 */
+}
+
+/* Video Cell (override existing) */
+.video-cell {
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+/* Video Card */
+.video-card {
+  height: 100%;
+  background: var(--color-bg-card) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.video-cell.hovered .video-card {
+  border-color: var(--color-accent) !important;
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+/* Empty Video Card */
+.empty-video-card {
+  height: 100%;
+  background: var(--color-bg-elevated) !important;
+  border: 2px dashed var(--color-border) !important;
+  border-radius: 8px !important;
+}
+
+/* Video Header Overlay */
+.video-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+}
+
+.camera-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  font-weight: 500;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+.camera-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Video Content Area (override existing) */
+.video-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+  position: relative;
+}
+
+/* Video Footer Overlay */
+.video-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, transparent 100%);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  font-size: 11px;
+  color: rgba(255,255,255,0.8);
+}
+
+.camera-location {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.camera-stats {
+  font-family: 'JetBrains Mono', monospace;
+  background: rgba(0,0,0,0.5);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* Camera Select Override */
+.camera-select .ant-select-selector {
+  background: var(--color-bg-card) !important;
+  border-color: var(--color-border) !important;
+}
+
+/* Camera Selector Modal */
+.camera-selector-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fade-in 0.2s ease-out;
+}
+
+.modal-content {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 20px;
+  width: 400px;
+  max-width: 90%;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+/* Loading Container */
+.loading-container {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Scan-line loading overlay (Phase 3 Task 14.3) */
+.video-wall-loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.scan-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    transparent 0%,
+    var(--color-accent) 50%,
+    transparent 100%
+  );
+  opacity: 0.15;
+  animation: scan-line 2s linear infinite;
+  pointer-events: none;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .control-panel {
+    margin-left: 0;
+    margin-top: 16px;
+    min-width: unset;
+  }
+}
+
+@media (max-width: 768px) {
+  .video-wall-header {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .video-cell {
+    min-height: 150px;
+  }
+  
+  .empty-video-cell,
+  .empty-video-card {
+    min-height: 150px;
+  }
+  
+  .empty-video-cell .anticon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+  
+  .control-panel {
+    padding: 12px;
+  }
+
+  .industrial-stat-card {
+    margin-bottom: 8px;
+  }
 }

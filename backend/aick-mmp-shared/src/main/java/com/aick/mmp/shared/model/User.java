@@ -7,9 +7,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import javax.persistence.*;
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -54,8 +53,16 @@ public class User {
     @Column(name = "last_login_ip")
     private String lastLoginIp;
 
+    @Builder.Default
     @Column(name = "is_enabled")
     private boolean enabled = true;
+
+    @Builder.Default
+    @Column(name = "login_failed_count")
+    private Integer loginFailedCount = 0;
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -71,5 +78,9 @@ public class User {
 
     public enum UserStatus {
         ACTIVE, INACTIVE, LOCKED, EXPIRED
+    }
+
+    public boolean isAccountLocked() {
+        return lockedUntil != null && lockedUntil.isAfter(LocalDateTime.now());
     }
 }

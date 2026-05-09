@@ -9,10 +9,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -56,10 +54,7 @@ public class EdgeNetworkMonitorServiceImpl implements EdgeNetworkMonitorService 
     public NetworkMetricsDTO collectNetworkMetrics() {
         try {
             NetworkMetricsDTO metrics = new NetworkMetricsDTO();
-            
-            // Collect system metrics
-            OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-            
+
             // Network latency (simulate ping to central server)
             double latency = measureLatency();
             metrics.setLatency(latency);
@@ -121,7 +116,7 @@ public class EdgeNetworkMonitorServiceImpl implements EdgeNetworkMonitorService 
         NetworkMetricsDTO metrics = collectNetworkMetrics();
         
         // Check if conditions require action
-        if (metrics.getLatency() > edgeNodeConfig.getNetworkMonitoring().getCpuThreshold()) {
+        if (metrics.getLatency() > edgeNodeConfig.getNetworkMonitoring().getLatencyThreshold()) {
             log.warn("High latency detected: {}ms", metrics.getLatency());
             handleHighLatency(metrics);
         }

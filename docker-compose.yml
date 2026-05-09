@@ -9,6 +9,8 @@ services:
       MYSQL_DATABASE: aick_mmp
       MYSQL_USER: aickuser
       MYSQL_PASSWORD: aickpassword
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
     ports:
       - "3306:3306"
     volumes:
@@ -94,9 +96,8 @@ services:
   # Central Services
   central-1:
     build:
-      context: .
-      dockerfile: Dockerfile
-      target: central-runtime
+      context: ./backend
+      dockerfile: aick-mmp-central/Dockerfile
     container_name: aick-mmp-central-1
     restart: always
     depends_on:
@@ -106,13 +107,13 @@ services:
       - janus
     environment:
       SPRING_PROFILES_ACTIVE: central
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aick_mmp?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8&useUnicode=true
       SPRING_DATASOURCE_USERNAME: aickuser
       SPRING_DATASOURCE_PASSWORD: aickpassword
       SPRING_REDIS_HOST: redis
       SPRING_REDIS_PORT: 6379
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:29092
-      JANUS_SERVER_URL: http://janus:8088
+      JANUS_SERVER_URL: http://janus:8088/janus
       JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
     volumes:
       - central-1-data:/app/data
@@ -169,7 +170,7 @@ services:
     container_name: aick-mmp-central-lb
     restart: always
     ports:
-      - "8080:80"
+      - "8090:80"
     volumes:
       - ./nginx/central-lb.conf:/etc/nginx/nginx.conf
       - ./nginx/conf.d:/etc/nginx/conf.d
@@ -195,9 +196,8 @@ services:
 
   edge-node-1:
     build:
-      context: .
-      dockerfile: Dockerfile
-      target: edge-runtime
+      context: ./backend
+      dockerfile: aick-mmp-edge/Dockerfile
     container_name: aick-mmp-edge-node-1
     restart: always
     ports:
@@ -211,12 +211,14 @@ services:
       REGISTRY_SERVER: http://central-lb
       HEARTBEAT_INTERVAL: 30
       JWT_SECRET: mmp-secret-key-change-in-production-environment-which-is-very-long-and-secure
+      # AK/SK for auto-registration with central service
+      EDGE_ACCESS_KEY: ak_lqnJHPudrUAmujwRQHHbXe4QpqfSPRYnEv5bjBo_TIQ
+      EDGE_SECRET_KEY: sk_8iFvm7LCN6Ukb_xb3lr4AmXZaQD31T_rwHJcIzg9Ni0
     volumes:
       - edge-node-1-data:/app/data
       - ./backend/logs/edge-1:/app/logs
     depends_on:
       - redis
-      - central-lb
     networks:
       - aick-network
     deploy:

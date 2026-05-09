@@ -1,17 +1,31 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, Select, Slider, Space, Typography, Row, Col, Tag } from 'antd';
 import { SettingOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import QualityConfirmDialog from './QualityConfirmDialog';
+import './QualityConfirmDialog.css';
 
 const { Text } = Typography;
 const { Option } = Select;
 
-const VideoQualityController = ({ 
-  quality, 
-  onQualityChange, 
-  bitrate, 
+const VideoQualityController = ({
+  quality,
+  value,
+  onQualityChange,
+  onChange,
+  bitrate,
   onBitrateChange,
-  disabled = false 
+  disabled = false
 }) => {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [pendingQuality, setPendingQuality] = useState(null);
+  const [dialogLoading, setDialogLoading] = useState(false);
+  const [dialogError, setDialogError] = useState(null);
+
+  // 兼容 quality 和 value prop
+  const currentQuality = quality || value;
+  // 兼容 onQualityChange 和 onChange prop
+  const handleQualityChangeCallback = onQualityChange || onChange;
+
   const qualityOptions = [
     { value: '480p', label: '标清 (480p)', bitrate: 1024, color: 'blue' },
     { value: '720p', label: '高清 (720p)', bitrate: 2048, color: 'green' },
@@ -31,14 +45,38 @@ const VideoQualityController = ({
   };
 
   const handleQualityChange = (value) => {
-    const selected = qualityOptions.find(option => option.value === value);
-    if (selected) {
-      onQualityChange(value);
-      onBitrateChange(selected.bitrate);
+    if (value === currentQuality) return; // 相同画质不弹出
+    setPendingQuality(value);
+    setDialogError(null);
+    setDialogOpen(true);
+  };
+
+  const handleDialogConfirm = async () => {
+    if (!pendingQuality) return;
+    setDialogLoading(true);
+    setDialogError(null);
+
+    try {
+      const selected = qualityOptions.find(option => option.value === pendingQuality);
+      await handleQualityChangeCallback(pendingQuality);
+      if (selected && onBitrateChange) {
+        onBitrateChange(selected.bitrate);
+      }
+      setDialogOpen(false);
+    } catch (e) {
+      setDialogError(e.message || '画质切换失败，请重试');
+    } finally {
+      setDialogLoading(false);
     }
   };
 
-  const currentQuality = qualityOptions.find(option => option.value === quality);
+  const handleDialogCancel = () => {
+    setDialogOpen(false);
+    setPendingQuality(null);
+    setDialogError(null);
+  };
+
+  const selectedQualityOption = qualityOptions.find(option => option.value === currentQuality);
 
   return (
     <Card 
@@ -58,7 +96,7 @@ const VideoQualityController = ({
             预设画质
           </Text>
           <Select
-            value={quality}
+            value={currentQuality}
             onChange={handleQualityChange}
             disabled={disabled}
             style={{ width: '100%' }}
@@ -121,14 +159,14 @@ const VideoQualityController = ({
           padding: '8px', 
           background: '#f5f5f5', 
           borderRadius: '4px',
-          border: `1px solid ${currentQuality?.color === 'blue' ? '#1890ff' : currentQuality?.color === 'green' ? '#52c41a' : '#722ed1'}`
+          border: `1px solid ${selectedQualityOption?.color === 'blue' ? '#1890ff' : selectedQualityOption?.color === 'green' ? '#52c41a' : '#722ed1'}`
         }}>
           <Row justify="space-between" align="middle">
             <Col>
               <Space>
-                <ThunderboltOutlined style={{ color: currentQuality?.color === 'blue' ? '#1890ff' : currentQuality?.color === 'green' ? '#52c41a' : '#722ed1' }} />
+                <ThunderboltOutlined style={{ color: selectedQualityOption?.color === 'blue' ? '#1890ff' : selectedQualityOption?.color === 'green' ? '#52c41a' : '#722ed1' }} />
                 <Text style={{ fontSize: '12px' }}>
-                  当前: <strong>{quality}</strong>
+                  当前: <strong>{currentQuality}</strong>
                 </Text>
               </Space>
             </Col>
@@ -140,6 +178,16 @@ const VideoQualityController = ({
           </Row>
         </div>
       </Space>
+
+      <QualityConfirmDialog
+        isOpen={dialogOpen}
+        currentQuality={currentQuality}
+        targetQuality={pendingQuality}
+        onConfirm={handleDialogConfirm}
+        onCancel={handleDialogCancel}
+        isLoading={dialogLoading}
+        error={dialogError}
+      />
     </Card>
   );
 };

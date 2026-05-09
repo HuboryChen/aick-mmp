@@ -1,0 +1,46 @@
+.global-reconnect-bar {
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.global-reconnect-bar .reconnect-alert {
+  border-radius: 6px;
+  margin-bottom: 0;
+}
+
+.global-reconnect-bar .reconnect-alert.reconnecting {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.global-reconnect-bar .reconnect-alert.failed {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.global-reconnect-bar .bar-icon {
+  font-size: 14px;
+}
+
+.global-reconnect-bar .camera-names {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.global-reconnect-bar .retry-all-link {
+  color: #3b82f6;
+  cursor: pointer;
+  margin-left: 12px;
+  font-size: 13px;
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.global-reconnect-bar .retry-all-link:hover {
+  color: #60a5fa;
+}

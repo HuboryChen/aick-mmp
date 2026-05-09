@@ -1,0 +1,78 @@
+.quality-confirm-dialog .dialog-content {
+  padding: 8px 0;
+}
+
+.quality-compare {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.quality-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px;
+  border-radius: 8px;
+  min-width: 100px;
+}
+
+.quality-item.current {
+  background: var(--color-bg-secondary, #f5f5f5);
+  color: var(--color-text-secondary, #8c8c8c);
+}
+
+.quality-item.target {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.quality-item .label {
+  font-size: 12px;
+  margin-bottom: 4px;
+  color: inherit;
+}
+
+.quality-item .value {
+  font-size: 18px;
+  font-weight: 600;
+  color: inherit;
+}
+
+.arrow {
+  font-size: 24px;
+  color: var(--color-text-muted, #bfbfbf);
+}
+
+.description {
+  color: var(--color-text-secondary, #8c8c8c);
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #fff2f0;
+  border-radius: 8px;
+  color: #ff4d4f;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.error-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}

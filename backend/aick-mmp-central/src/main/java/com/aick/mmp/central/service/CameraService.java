@@ -1,6 +1,7 @@
 package com.aick.mmp.central.service;
 
 import com.aick.mmp.central.dto.CameraDTO;
+import com.aick.mmp.central.dto.CameraStatisticsDTO;
 import com.aick.mmp.central.dto.CameraStatusUpdateDTO;
 import com.aick.mmp.central.dto.GetCamerasRequestDTO;
 import com.aick.mmp.shared.model.Camera;
@@ -13,9 +14,6 @@ import java.util.Map;
 public interface CameraService {
     Page<CameraDTO> getAllCameras(Pageable pageable);
     Page<CameraDTO> getCameras(GetCamerasRequestDTO request);
-    Page<CameraDTO> getCamerasByLocation(String location, Pageable pageable);
-    Page<CameraDTO> getCamerasByEdgeNodeId(Long edgeNodeId, Pageable pageable);
-    Page<CameraDTO> getCamerasByStatus(Camera.CameraStatus status, Pageable pageable);
     CameraDTO getCameraById(Long id);
     CameraDTO createCamera(CameraDTO cameraDTO);
     CameraDTO updateCamera(Long id, CameraDTO cameraDTO);
@@ -25,24 +23,45 @@ public interface CameraService {
     void deleteCamera(Long id);
     void batchDeleteCameras(List<Long> cameraIds);
     void batchUpdateEdgeNode(List<Long> cameraIds, Long edgeNodeId);
-    String getCameraStreamUrl(Long cameraId);
-    Map<String, Object> getCameraStatistics(Long cameraId);
-    List<CameraDTO> getOnlineCamerasByEdgeNode(Long edgeNodeId);
-    long getCameraCountByStatus(Camera.CameraStatus status);
-    long getCameraCount();
-    boolean testCameraConnection(Long cameraId);
-
-    // 添加流媒体相关方法
     String startCameraStream(Long cameraId);
     void stopCameraStream(Long cameraId);
-    
-    // 负载均衡分配相关方法
+    Page<CameraDTO> getCamerasByStatus(Camera.CameraStatus status, Pageable pageable);
+    List<CameraDTO> getCamerasByEdgeNode(Long edgeNodeId);
+    List<CameraDTO> getAllOnlineCameras();
+    CameraDTO restoreCamera(Long id);
+    void forceDeleteCamera(Long id);
+    List<CameraDTO> getDeletedCameras();
+    Map<String, Object> batchUpdateStatus(List<Long> ids, Camera.CameraStatus newStatus);
+    CameraDTO convertToDto(Camera camera);
+    Camera convertToEntity(CameraDTO dto);
     Long selectOptimalEdgeNode(CameraDTO cameraDTO);
     void autoAssignCamerasToEdgeNodes();
 
-    // 软删除相关方法
-    CameraDTO restoreCamera(Long id);
-    void forceDeleteCamera(Long id);
-    List<CameraDTO> getAllOnlineCameras();
-    List<CameraDTO> getDeletedCameras();
+    // Additional methods used by controllers and other services
+    List<CameraDTO> getOnlineCamerasByEdgeNode(Long edgeNodeId);
+    Map<String, Object> getCameraStatistics(Long cameraId);
+    boolean testCameraConnection(Long cameraId);
+    long getCameraCountByStatus(Camera.CameraStatus status);
+
+    // ========== 统计聚合API ==========
+    /**
+     * 获取摄像头统计概览
+     */
+    CameraStatisticsDTO getCameraStatisticsSummary(Long regionId, Long edgeNodeId, boolean forceRefresh);
+
+    /**
+     * 刷新统计缓存
+     */
+    void refreshStatisticsCache();
+
+    // ========== 孤立录像管理 ==========
+    /**
+     * 获取孤立录像数量
+     */
+    long getOrphanedRecordingsCount();
+
+    /**
+     * 清理超过指定天数的孤立录像
+     */
+    int cleanupOrphanedRecordings(int daysOld);
 }
