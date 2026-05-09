@@ -13,16 +13,22 @@ public class TestDataProvider {
     public AlertRule createTestAlertRule() {
         return AlertRule.builder()
                 .name("Test Alert Rule")
-                .type("THRESHOLD")
+                .description("Test alert rule for testing purposes")
+                .alertType(AlertRule.AlertType.CPU_USAGE)
+                .level(AlertRule.AlertLevel.WARNING)
+                .targetType(AlertRule.TargetType.SYSTEM)
                 .enabled(true)
-                .thresholdValue(80)
+                .warningThreshold(80.0)
+                .criticalThreshold(90.0)
                 .build();
     }
 
     public EdgeNode createTestEdgeNode() {
         return EdgeNode.builder()
-                .nodeName("Test Edge Node")
-                .nodeCode("TEST-001")
+                .name("Test Edge Node")
+                .uuid("TEST-001")
+                .location("Test Location")
+                .ipAddress("192.168.1.100")
                 .status(EdgeNode.NodeStatus.ONLINE)
                 .heartbeatTime(new Date())
                 .build();
@@ -30,10 +36,11 @@ public class TestDataProvider {
 
     public Camera createTestCamera() {
         return Camera.builder()
-                .cameraName("Test Camera")
-                .cameraCode("CAM-001")
+                .name("Test Camera")
+                .location("Test Location")
+                .connectionUrl("rtsp://test.url")
+                .protocol(Camera.Protocol.RTSP)
                 .status(Camera.CameraStatus.ONLINE)
-                .rtspUrl("rtsp://test.url")
                 .build();
     }
 }
