@@ -84,6 +84,12 @@ security:
     # 令牌过期时间：单位为毫秒，默认为24小时(86400000ms)
     expiration: ${JWT_EXPIRATION:86400000}
 
+# AI Analysis Service configuration
+ai:
+  service:
+    host: ${AI_SERVICE_HOST:ai-service}
+    grpc-port: ${AI_SERVICE_GRPC_PORT:50051}
+
 # API Key 认证配置 (AK/SK)
 api-key:
   # Access Key - 从环境变量注入

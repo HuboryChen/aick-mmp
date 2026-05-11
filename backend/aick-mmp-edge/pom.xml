@@ -99,6 +99,18 @@
             <artifactId>springdoc-openapi-ui</artifactId>
         </dependency>
 
+        <!-- JavaCV for RTSP frame grabbing -->
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacv</artifactId>
+            <version>1.5.10</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>ffmpeg-platform</artifactId>
+            <version>6.1.1-1.5.10</version>
+        </dependency>
+
         <!-- gRPC -->
         <dependency>
             <groupId>io.grpc</groupId>
@@ -140,6 +152,27 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>com.github.os72</groupId>
+                <artifactId>protoc-jar-maven-plugin</artifactId>
+                <version>3.11.4</version>
+                <executions>
+                    <execution>
+                        <phase>generate-sources</phase>
+                        <goals><goal>run</goal></goals>
+                        <configuration>
+                            <protocVersion>3.25.3</protocVersion>
+                            <inputTargets>
+                                <inputTarget>
+                                    <type>grpc-java</type>
+                                    <input>${project.basedir}/../../aick-mmp-ai/src/proto/frame.proto</input>
+                                    <outputDirectory>${project.build.directory}/generated-sources/proto</outputDirectory>
+                                </inputTarget>
+                            </inputTargets>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
