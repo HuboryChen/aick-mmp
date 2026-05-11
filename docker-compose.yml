@@ -271,6 +271,26 @@ services:
 #      retries: 3
 #      start_period: 30s
 
+  # AI Analysis Service
+  ai-service:
+    build:
+      context: ./aick-mmp-ai
+      dockerfile: Dockerfile
+    container_name: aick-mmp-ai-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    environment:
+      - AI_KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - AI_MODEL_DIR=/app/models
+    volumes:
+      - ./aick-mmp-ai/models:/app/models
+    depends_on:
+      - kafka
+    networks:
+      - aick-network
+
   edge-lb:
     image: nginx:alpine
     container_name: aick-mmp-edge-lb
