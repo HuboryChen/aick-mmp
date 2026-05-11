@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package aick.ai;
+
+service FrameAnalysis {
+  rpc AnalyzeFrame(stream FrameRequest) returns (stream AnalysisResult);
+}
+
+message FrameRequest {
+  string camera_id = 1;
+  string edge_node_id = 2;
+  bytes frame_data = 3;       // JPEG encoded
+  int64 timestamp = 4;
+  repeated string analysis_types = 5;
+}
+
+message AnalysisResult {
+  string camera_id = 1;
+  int64 timestamp = 2;
+  oneof result {
+    PassengerStats passenger = 10;
+    BehaviorEvent behavior = 11;
+    VehicleRecord vehicle = 12;
+  }
+}
+
+message PassengerStats {
+  int32 enter_count = 1;
+  int32 exit_count = 2;
+  int32 inside_count = 3;
+  repeated ZoneStats zone_stats = 4;
+}
+
+message ZoneStats {
+  string zone_name = 1;
+  int32 person_count = 2;
+}
+
+message BehaviorEvent {
+  string event_type = 1;       // LOITERING, INTRUSION, GATHERING, FALL
+  string level = 2;            // INFO, WARNING, CRITICAL
+  float position_x = 3;
+  float position_y = 4;
+  float width = 5;
+  float height = 6;
+  string snapshot_path = 7;
+  string description = 8;
+}
+
+message VehicleRecord {
+  string plate_number = 1;
+  string plate_color = 2;
+  float confidence = 3;
+  string snapshot_path = 4;
+}
