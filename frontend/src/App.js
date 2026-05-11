@@ -25,6 +25,9 @@ import ApiKeyManagement from './pages/ApiKeyManagement';
 import AlertManagement from './pages/AlertManagement';
 import AlertList from './pages/AlertList';
 import Analytics from './pages/Analytics';
+import AiPassengerDashboard from './pages/AiPassengerDashboard';
+import AiBehaviorAlertCenter from './pages/AiBehaviorAlertCenter';
+import AiLicensePlateManagement from './pages/AiLicensePlateManagement';
 import AlertNotification from './components/AlertNotification';
 import './styles/index.css';
 
@@ -120,6 +123,9 @@ function AppContent() {
                   <Route path="/alerts/rules" element={<AlertManagement />} />
                   <Route path="/alerts/records" element={<AlertList />} />
                   <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/ai/passenger" element={<AiPassengerDashboard />} />
+                  <Route path="/ai/alerts" element={<AiBehaviorAlertCenter />} />
+                  <Route path="/ai/vehicles" element={<AiLicensePlateManagement />} />
                 </Route>
               </Routes>
             </div>
