@@ -96,14 +96,14 @@ class CameraCredentialCacheServiceTest {
     void testInvalidateEmptyList() {
         cacheService.invalidateCameras(List.of());
 
-        verify(redisTemplate, never()).delete(any());
+        verify(redisTemplate, never()).delete(anyCollection());
     }
 
     @Test
     void testInvalidateNullList() {
         cacheService.invalidateCameras(null);
 
-        verify(redisTemplate, never()).delete(any());
+        verify(redisTemplate, never()).delete(anyCollection());
     }
 
     @Test
