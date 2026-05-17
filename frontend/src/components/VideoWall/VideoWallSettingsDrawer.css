@@ -188,3 +188,11 @@
 .video-wall-settings-drawer .ant-slider-mark-text {
   font-size: 10px;
 }
+
+/* ========== 抽屉动画时长覆盖 ========== */
+.video-wall-settings-drawer .ant-drawer-content-wrapper {
+  transition: all 0.3s ease-out !important;
+}
+.video-wall-settings-drawer .ant-drawer-content-wrapper-out {
+  transition: all 0.2s ease-in !important;
+}

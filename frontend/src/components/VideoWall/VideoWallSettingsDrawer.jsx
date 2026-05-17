@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Drawer, Button, Divider, Space, Skeleton, Alert, message } from 'antd';
-import { SettingOutlined, ReloadOutlined, CheckOutlined } from '@ant-design/icons';
+import { SettingOutlined, ReloadOutlined, CheckOutlined, LoadingOutlined } from '@ant-design/icons';
 import LayoutSelector from './LayoutSelector';
 import QualitySelector from './QualitySelector';
 import PresetSelector from './PresetSelector';
@@ -50,6 +50,9 @@ const VideoWallSettingsDrawer = ({
   const [localLayout, setLocalLayout] = useState('4');
   const [localQuality, setLocalQuality] = useState('720p');
   const [localBitrate, setLocalBitrate] = useState(2048);
+  // 保存状态：saving 为 true 时按钮显示加载/成功反馈
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // 当抽屉打开时，从父组件同步最新配置到本地编辑状态
   useEffect(() => {
@@ -76,27 +79,40 @@ const VideoWallSettingsDrawer = ({
   };
 
   // 应用当前设置并即时持久化
-  const handleApplySettings = () => {
-    // 即时保存到父组件的 hook（localStorage + DB）
-    saveConfigImmediately({
-      ...config,
-      layout: localLayout,
-      quality: localQuality,
-      bitrate: localBitrate,
-    });
+  const handleApplySettings = async () => {
+    setSaving(true);
+    setSaveSuccess(false);
+    try {
+      // 即时保存到父组件的 hook（localStorage + DB）
+      await saveConfigImmediately({
+        ...config,
+        layout: localLayout,
+        quality: localQuality,
+        bitrate: localBitrate,
+      });
 
-    // 通知父组件更新本地 UI 状态
-    if (onLayoutChange) {
-      onLayoutChange(localLayout);
-    }
-    if (onQualityChange) {
-      onQualityChange(localQuality);
-    }
-    if (onBitrateChange) {
-      onBitrateChange(localBitrate);
-    }
+      // 通知父组件更新本地 UI 状态
+      if (onLayoutChange) {
+        onLayoutChange(localLayout);
+      }
+      if (onQualityChange) {
+        onQualityChange(localQuality);
+      }
+      if (onBitrateChange) {
+        onBitrateChange(localBitrate);
+      }
 
-    message.success('设置已应用');
+      message.success('设置已应用', 2);
+      // 切换到成功状态，展示绿色对勾
+      setSaveSuccess(true);
+      // 保持成功显示 1.5 秒让用户看到反馈
+      await new Promise((r) => setTimeout(r, 1500));
+    } catch {
+      message.error('设置保存失败', 2);
+    } finally {
+      setSaving(false);
+      setSaveSuccess(false);
+    }
   };
 
   // 选择预设
@@ -105,7 +121,7 @@ const VideoWallSettingsDrawer = ({
     setLocalLayout(preset.layout);
     setLocalQuality(preset.quality);
     setLocalBitrate(preset.bitrate);
-    message.success(`已应用预设: ${preset.presetName || preset.name}`);
+    message.success(`已应用预设: ${preset.presetName || preset.name}`, 2);
   };
 
   // 创建新预设
@@ -162,8 +178,8 @@ const VideoWallSettingsDrawer = ({
   };
 
   // 完成并关闭
-  const handleDone = () => {
-    handleApplySettings();
+  const handleDone = async () => {
+    await handleApplySettings();
     if (onClose) {
       onClose();
     }
@@ -205,11 +221,11 @@ const VideoWallSettingsDrawer = ({
             </Button>
             <Button
               type="primary"
-              icon={<CheckOutlined />}
+              icon={saving ? (saveSuccess ? <CheckOutlined style={{ color: '#52c41a' }} /> : <LoadingOutlined />) : <CheckOutlined />}
               onClick={handleDone}
-              disabled={isLoading && !isLoaded}
+              disabled={(isLoading && !isLoaded) || saving}
             >
-              完成
+              {saving ? (saveSuccess ? '已保存' : '保存中...') : '完成'}
             </Button>
           </Space>
         </div>
