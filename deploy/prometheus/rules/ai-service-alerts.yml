@@ -1,0 +1,39 @@
+groups:
+  - name: ai-service-alerts
+    interval: 30s
+    rules:
+      - alert: AIServiceDown
+        expr: up{service="ai-service"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "AI Service 不可用"
+          description: "AI Service 已离线超过1分钟"
+
+      - alert: HighGPULoad
+        expr: avg by (pod) (nvidia_gpu_utilization) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "GPU 负载过高"
+          description: "GPU 使用率持续超过80%，已持续5分钟"
+
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_lag > 1000
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka 消费者积压"
+          description: "AI Service Kafka 消费者积压超过1000条消息"
+
+      - alert: HighFrameProcessingLatency
+        expr: ai_frame_processing_latency_ms > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "帧处理延迟过高"
+          description: "P95 帧处理延迟超过500ms，已持续5分钟"

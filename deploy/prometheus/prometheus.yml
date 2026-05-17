@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files:
+  - "rules/*.yml"
+
+scrape_configs:
+  - job_name: 'ai-service'
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['ai-service:8000']
+        labels:
+          service: 'ai-service'
+
+  - job_name: 'central-service'
+    metrics_path: /api/actuator/prometheus
+    static_configs:
+      - targets: ['central-1:8080']
+        labels:
+          service: 'central-service'
+
+  - job_name: 'edge-nodes'
+    metrics_path: /api/actuator/prometheus
+    static_configs:
+      - targets: ['edge-node-1:8080']
+        labels:
+          service: 'edge-node'

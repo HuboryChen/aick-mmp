@@ -1,0 +1,107 @@
+{
+  "title": "AI Service Dashboard",
+  "uid": "ai-service-dashboard",
+  "version": 1,
+  "tags": ["ai", "mmp"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "GPU Utilization",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "avg(nvidia_gpu_utilization{job=\"ai-service\"})",
+          "legendFormat": "GPU Util"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 }
+    },
+    {
+      "title": "Frame Processing Latency (P95)",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(ai_frame_processing_latency_seconds_bucket[5m])) by (le))",
+          "legendFormat": "P95 Latency"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 }
+    },
+    {
+      "title": "Active Video Streams",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "sum(ai_active_streams{job=\"ai-service\"})",
+          "legendFormat": "Active Streams"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 }
+    },
+    {
+      "title": "Kafka Producer Count",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(ai_kafka_messages_produced_total[5m])",
+          "legendFormat": "Messages/s"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 8 }
+    },
+    {
+      "title": "Detection Results per Second",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(ai_detections_total[5m])",
+          "legendFormat": "Detections/s"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 8 }
+    },
+    {
+      "title": "Current Memory Usage",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes{job=\"ai-service\"} / 1024 / 1024",
+          "legendFormat": "Memory (MB)"
+        }
+      ],
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 4 }
+    },
+    {
+      "title": "Behavior Events by Type",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(ai_behavior_events_total[5m])",
+          "legendFormat": "{{event_type}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 16 }
+    },
+    {
+      "title": "Kafka Consumer Lag",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "kafka_consumer_lag{job=\"ai-service\"}",
+          "legendFormat": "{{topic}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 16 }
+    }
+  ],
+  "schemaVersion": 36,
+  "refresh": "10s"
+}
