@@ -15,13 +15,16 @@ class CameraPasswordEncryptorTest {
     private static CameraPasswordEncryptor encryptor;
 
     @BeforeAll
-    static void setup() {
+    static void setup() throws Exception {
         AESEncryptionUtil util = new AESEncryptionUtil(
                 "test-encryption-key-32bytes!!!",
                 "test-camera-key-32bytes!!!!"
         );
         encryptor = new CameraPasswordEncryptor();
-        CameraPasswordEncryptor.setEncryptionUtil(util);
+        // Use reflection to set the private static field
+        java.lang.reflect.Field field = CameraPasswordEncryptor.class.getDeclaredField("encryptionUtil");
+        field.setAccessible(true);
+        field.set(null, util);
     }
 
     @Test

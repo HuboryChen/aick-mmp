@@ -20,12 +20,14 @@ import org.springframework.stereotype.Component;
 @Slf4j
 public class CameraPasswordEncryptor implements AttributeConverter<String, String> {
 
-    @Setter
-    private static AESEncryptionUtil encryptionUtil;
+    private static volatile AESEncryptionUtil encryptionUtil;
 
     @Autowired
     public void initEncryptionUtil(AESEncryptionUtil util) {
-        CameraPasswordEncryptor.setEncryptionUtil(util);
+        if (util == null) {
+            throw new IllegalArgumentException("AESEncryptionUtil must not be null");
+        }
+        CameraPasswordEncryptor.encryptionUtil = util;
     }
 
     @Override
