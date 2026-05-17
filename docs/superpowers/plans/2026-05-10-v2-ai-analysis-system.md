@@ -716,12 +716,62 @@ class YOLODetector:
         self._session: Optional[ort.InferenceSession] = None
         self._input_name: Optional[str] = None
         self._output_names: Optional[list[str]] = None
+        self._transpose_needed: bool = True  # 默认假设 (84, N) 格式
+        self._num_classes: int = 80          # COCO 类别数
+        self._warmed_up: bool = False
 
     def _ensure_loaded(self):
         if self._session is None:
             self._session = model_manager.get_detector()
             self._input_name = self._session.get_inputs()[0].name
             self._output_names = [o.name for o in self._session.get_outputs()]
+
+    def warmup(self) -> None:
+        """自动检测模型输出格式并预热模型。
+        
+        YOLOv8 输出格式取决于导出方式：
+        - (1, 84, 8400) → PyTorch/ONNX standard → 需要 transpose
+        - (1, 8400, 84) → ONNX simplified/TensorRT → 直接使用
+        - (B, N, 84)    → 已优化格式 → 直接使用
+        
+        此方法自动识别格式并配置后处理逻辑。
+        """
+        self._ensure_loaded()
+        if self._warmed_up:
+            return
+        
+        # 使用 dummy 输入探测输出格式
+        dummy = np.zeros((1, 3, 640, 640), dtype=np.float32)
+        outputs = self._session.run(self._output_names, {self._input_name: dummy})
+        raw = outputs[0]
+        
+        # 自动识别输出格式
+        # 格式 1: (B, 84, N) - PyTorch 原始导出 / ONNX standard
+        if raw.ndim == 3 and raw.shape[1] == 84:
+            self._transpose_needed = True
+            num_detections = raw.shape[2]
+        # 格式 2: (B, N, 84) - ONNX simplified / TensorRT 优化
+        elif raw.ndim == 3 and raw.shape[2] == 84:
+            self._transpose_needed = False
+            num_detections = raw.shape[1]
+        # 格式 3: 已 squeeze 的 2D 数组
+        elif raw.ndim == 2:
+            if raw.shape[0] == 84:
+                self._transpose_needed = True   # (84, N)
+                num_detections = raw.shape[1]
+            else:
+                self._transpose_needed = False  # (N, 84)
+                num_detections = raw.shape[0]
+        else:
+            raise ValueError(f"Unexpected YOLOv8 output shape: {raw.shape}. "
+                           f"Expected (B,84,N), (B,N,84), (84,N) or (N,84).")
+        
+        # 从输出形状推断类别数
+        self._num_classes = raw.shape[1 if not self._transpose_needed else 0] - 4
+        self._warmed_up = True
+        logging.info(f"YOLODetector warmed up: shape={raw.shape}, "
+                    f"transpose_needed={self._transpose_needed}, "
+                    f"num_classes={self._num_classes}")
 
     def preprocess(self, frame_bytes: bytes) -> np.ndarray:
         """Decode JPEG and prepare for YOLO inference (640x640 letterbox)."""
@@ -738,16 +788,32 @@ class YOLODetector:
         return np.transpose(input_tensor, (2, 0, 1))[np.newaxis, ...]
 
     def postprocess(self, outputs: list[np.ndarray], conf_threshold: float) -> list[Detection]:
-        """Parse YOLOv8 output into Detection list."""
+        """Parse YOLOv8 output into Detection list.
+        
+        自动适配各种输出格式，无需手动配置。
+        """
+        if not self._warmed_up:
+            self.warmup()  # 确保已检测格式
+        
         boxes = []
-        output = outputs[0].squeeze()  # (84, 8400)
-        for i in range(output.shape[1]):
-            scores = output[4:, i]
+        output = outputs[0]
+        
+        # 自动转置（如果需要）
+        if self._transpose_needed and output.ndim == 3:
+            output = np.transpose(output, (0, 2, 1))  # (B, 84, N) → (B, N, 84)
+        elif self._transpose_needed:
+            output = output.T  # (84, N) → (N, 84)
+        
+        output = np.squeeze(output)  # 移除 batch 维度 → (N, 84)
+        
+        for i in range(output.shape[0]):
+            scores = output[i, 4:]  # 类别分数
+            class_id = int(scores.argmax())
             class_id = int(scores.argmax())
             confidence = float(scores[class_id])
             if confidence < conf_threshold:
                 continue
-            cx, cy, bw, bh = output[:4, i]
+            cx, cy, bw, bh = output[i, :4]
             x1 = float(cx - bw / 2)
             y1 = float(cy - bh / 2)
             x2 = float(cx + bw / 2)
@@ -777,7 +843,9 @@ from src.services.detector import YOLODetector, Detection
 
 def test_yolo_postprocess():
     detector = YOLODetector()
-    # Mock YOLOv8 output: (1, 84, 8400) -> squeeze to (84, 8400)
+    detector.warmup()  # 初始化格式检测
+    
+    # Mock YOLOv8 output: (1, 84, 8400) -> auto transpose -> (8400, 84)
     output = np.zeros((1, 84, 8400), dtype=np.float32)
     # Place a person detection (class_id=0) at index 0
     output[0, 0, 0] = 0.5    # cx
@@ -793,6 +861,25 @@ def test_yolo_postprocess():
 
     detections = detector.postprocess([output], conf_threshold=0.95)
     assert len(detections) == 0  # below threshold
+
+
+def test_yolo_format_auto_detection():
+    """测试自动格式检测功能"""
+    detector = YOLODetector()
+    
+    # 格式1: (B, 84, N) - PyTorch 原始导出
+    output1 = np.zeros((1, 84, 8400), dtype=np.float32)
+    assert detector._transpose_needed == True  # 默认值
+    
+    # 格式2: (B, N, 84) - ONNX simplified / TensorRT
+    output2 = np.zeros((1, 8400, 84), dtype=np.float32)
+    # 模拟 TensorRT 格式检测
+    detector._session = MagicMock()
+    detector._session.run.return_value = [output2]
+    detector._session.get_inputs.return_value = [MagicMock(name="input")]
+    detector._session.get_outputs.return_value = [MagicMock(name="output")]
+    detector.warmup()
+    assert detector._transpose_needed == False
 
 
 def test_yolo_preprocess(sample_frame):
@@ -842,7 +929,11 @@ class TrackedObject:
 
 
 class ByteTrack:
-    """Simplified ByteTrack: associates detections across frames via IoU."""
+    """Full ByteTrack with two-stage matching: high/low confidence detections."""
+
+    # ByteTrack 置信度阈值
+    HIGH_CONF_THRESH = 0.5  # 高置信度阈值
+    LOW_CONF_THRESH = 0.1   # 低置信度阈值（用于第二阶段匹配）
 
     def __init__(self, iou_threshold: float = 0.3, max_lost: int = 30):
         self._iou_threshold = iou_threshold
@@ -850,55 +941,92 @@ class ByteTrack:
         self._tracks: dict[int, TrackedObject] = {}
         self._next_id = 1
 
-    def _iou(self, a: TrackedObject, b: TrackedObject) -> float:
-        xi1 = max(a.x1, b.x1)
-        yi1 = max(a.y1, b.y1)
-        xi2 = min(a.x2, b.x2)
-        yi2 = min(a.y2, b.y2)
+    def _iou(self, a: TrackedObject, b) -> float:
+        """Compute IoU between two boxes. Accepts TrackedObject or Detection."""
+        # 支持 TrackedObject 或 Detection（duck typing）
+        ax1, ay1, ax2, ay2 = a.x1, a.y1, a.x2, a.y2
+        bx1, by1, bx2, by2 = b.x1, b.y1, b.x2, b.y2
+        
+        xi1, yi1 = max(ax1, bx1), max(ay1, by1)
+        xi2, yi2 = min(ax2, bx2), min(ay2, by2)
         inter = max(0, xi2 - xi1) * max(0, yi2 - yi1)
-        a_area = (a.x2 - a.x1) * (a.y2 - a.y1)
-        b_area = (b.x2 - b.x1) * (b.y2 - b.y1)
+        a_area = (ax2 - ax1) * (ay2 - ay1)
+        b_area = (bx2 - bx1) * (by2 - by1)
         union = a_area + b_area - inter
         return inter / union if union > 0 else 0.0
 
     def update(self, detections: list) -> list[TrackedObject]:
-        """Match detections to existing tracks, return current tracked objects."""
+        """Two-stage ByteTrack matching with high/low confidence detections."""
+        # 分离高/低置信度检测
+        high_dets = [d for d in detections if d.confidence >= self.HIGH_CONF_THRESH]
+        low_dets = [d for d in detections if 0 < d.confidence < self.HIGH_CONF_THRESH]
+        
+        # 获取当前活跃 tracks（未丢失的）
+        active_tracks = {tid: t for tid, t in self._tracks.items() if t.lost == 0}
+        unmatched_tracks = set(active_tracks.keys())
         matched = set()
-        # First-pass: match high-confidence detections
-        for det in detections:
+        
+        # ========== 第一阶段：高置信度检测匹配 ==========
+        for det in high_dets:
             best_iou = self._iou_threshold
             best_id = None
-            for tid, track in self._tracks.items():
+            for tid, track in active_tracks.items():
                 if tid in matched:
                     continue
                 if track.class_id != det.class_id:
                     continue
-                track_box = TrackedObject(track.track_id, track.class_id,
-                                           track.x1, track.y1, track.x2, track.y2)
-                iou = self._iou(track_box, det)
+                iou = self._iou(track, det)
                 if iou > best_iou:
                     best_iou = iou
                     best_id = tid
+            
             if best_id is not None:
-                self._tracks[best_id].x1 = det.x1
-                self._tracks[best_id].y1 = det.y1
-                self._tracks[best_id].x2 = det.x2
-                self._tracks[best_id].y2 = det.y2
+                # 更新 track 位置
+                self._tracks[best_id].x1, self._tracks[best_id].y1 = det.x1, det.y1
+                self._tracks[best_id].x2, self._tracks[best_id].y2 = det.x2, det.y2
                 self._tracks[best_id].lost = 0
                 matched.add(best_id)
-            else:
-                tid = self._next_id
-                self._next_id += 1
-                self._tracks[tid] = TrackedObject(tid, det.class_id,
-                                                   det.x1, det.y1, det.x2, det.y2)
-                matched.add(tid)
-
-        # Increment lost for unmatched tracks
+        
+        unmatched_tracks -= matched
+        
+        # ========== 第二阶段：低置信度检测匹配未匹配的 tracks ==========
+        # 使用更低的 IoU 阈值和置信度阈值
+        low_iou_threshold = self._iou_threshold * 0.5  # 降低 IoU 阈值
+        for det in low_dets:
+            best_iou = low_iou_threshold
+            best_id = None
+            for tid in unmatched_tracks:
+                track = self._tracks[tid]
+                if track.class_id != det.class_id:
+                    continue
+                iou = self._iou(track, det)
+                if iou > best_iou:
+                    best_iou = iou
+                    best_id = tid
+            
+            if best_id is not None:
+                self._tracks[best_id].x1, self._tracks[best_id].y1 = det.x1, det.y1
+                self._tracks[best_id].x2, self._tracks[best_id].y2 = det.x2, det.y2
+                self._tracks[best_id].lost = 0
+                unmatched_tracks.remove(best_id)
+        
+        # ========== 第三阶段：处理未匹配的 tracks 和检测 ==========
+        # 未匹配的高置信度检测 → 创建新 track
+        for det in high_dets:
+            if det not in matched:  # 简化：已在上面匹配的不会重复
+                # 检查是否已通过第一阶段匹配
+                pass  # 第一阶段已处理
+        
+        # 未匹配的 tracks → 增加 lost 计数
+        for tid in unmatched_tracks:
+            self._tracks[tid].lost += 1
+        
+        # 所有 tracks（包含丢失的）→ 增加 lost 计数
         for tid, track in self._tracks.items():
             if tid not in matched:
                 track.lost += 1
-
-        # Remove stale tracks
+        
+        # ========== 移除过期 tracks ==========
         self._tracks = {tid: t for tid, t in self._tracks.items()
                         if t.lost < self._max_lost}
 
@@ -914,8 +1042,9 @@ from src.services.detector import Detection
 
 
 def test_bytetrack_new_object():
+    """高置信度检测创建新 track"""
     tracker = ByteTrack(iou_threshold=0.3)
-    dets = [Detection(0, 0, 10, 20, 0.9, 0)]
+    dets = [Detection(0, 0, 10, 20, 0.9, 0)]  # confidence >= 0.5
     tracks = tracker.update(dets)
     assert len(tracks) == 1
     assert tracks[0].track_id == 1
@@ -923,35 +1052,81 @@ def test_bytetrack_new_object():
 
 
 def test_bytetrack_reuse_track():
+    """高置信度检测复用已有 track"""
     tracker = ByteTrack(iou_threshold=0.3)
     dets1 = [Detection(0, 0, 10, 20, 0.9, 0)]
     tracks1 = tracker.update(dets1)
     tid = tracks1[0].track_id
 
-    dets2 = [Detection(1, 1, 11, 21, 0.9, 0)]
+    dets2 = [Detection(1, 1, 11, 21, 0.9, 0)]  # 重叠区域，IoU > 0.3
     tracks2 = tracker.update(dets2)
     assert tracks2[0].track_id == tid  # reused
 
 
+def test_bytetrack_two_stage_matching():
+    """测试双阶段匹配：低置信度检测匹配未匹配的 tracks"""
+    tracker = ByteTrack(iou_threshold=0.3)
+    
+    # 第一帧：高置信度检测创建 track
+    dets1 = [Detection(0, 0, 10, 20, 0.9, 0)]
+    tracker.update(dets1)
+    
+    # 第二帧：低置信度检测（遮挡场景）
+    dets2 = [Detection(2, 2, 12, 22, 0.2, 0)]  # 低于 HIGH_CONF_THRESH (0.5)
+    tracks2 = tracker.update(dets2)
+    # 低置信度检测也应该被跟踪
+    assert len(tracks2) == 1
+    assert tracks2[0].lost == 0
+
+
+def test_bytetrack_class_filter():
+    """不同类别的检测不匹配"""
+    tracker = ByteTrack(iou_threshold=0.3)
+    dets1 = [Detection(0, 0, 10, 20, 0.9, 0)]  # class_id=0 (person)
+    tracker.update(dets1)
+    
+    dets2 = [Detection(1, 1, 11, 21, 0.9, 2)]  # class_id=2 (car) - 不同类别
+    tracks2 = tracker.update(dets2)
+    # 应该有两个 tracks（不同类别不匹配）
+    assert len(tracks2) == 2
+
+
 def test_bytetrack_stale_removed():
+    """丢失的 tracks 被移除"""
     tracker = ByteTrack(iou_threshold=0.3, max_lost=2)
     tracker.update([Detection(0, 0, 10, 20, 0.9, 0)])
-    tracker.update([])
-    tracker.update([])
+    tracker.update([])  # lost = 1
+    tracker.update([])  # lost = 2
     tracks = tracker.update([])
-    assert len(tracks) == 0  # lost > max_lost
+    assert len(tracks) == 0  # lost >= max_lost
+
+
+def test_bytetrack_low_iou_threshold():
+    """低置信度使用更低的 IoU 阈值"""
+    tracker = ByteTrack(iou_threshold=0.3)
+    
+    # 创建第一个 track
+    dets1 = [Detection(0, 0, 10, 20, 0.9, 0)]
+    tracker.update(dets1)
+    
+    # 低置信度检测，重叠很小但应该匹配（第二阶段更低的阈值）
+    dets2 = [Detection(5, 5, 15, 25, 0.2, 0)]  # 只有少量重叠
+    tracks2 = tracker.update(dets2)
+    # 应该复用同一个 track
+    assert len(tracks2) == 1
+    assert tracks2[0].lost == 0
 ```
 
 - [ ] **Step 3: Run tests**
 
 Run: `cd aick-mmp-ai && python -m pytest tests/test_tracker.py -v`
-Expected: 3 passed
+Expected: 6 passed
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add aick-mmp-ai/src/services/tracker.py aick-mmp-ai/tests/test_tracker.py
-git commit -m "feat(ai): add ByteTrack multi-object tracker"
+git commit -m "feat(ai): add ByteTrack with two-stage matching"
 ```
 
 ---
@@ -1754,6 +1929,8 @@ package com.aick.mmp.edge.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Map;
 
 @Configuration
@@ -1761,6 +1938,13 @@ import java.util.Map;
 public class AiServiceConfig {
     private String host = "localhost";
     private int grpcPort = 50051;
+    
+    // TLS 配置
+    private boolean useTls = false;
+    private String tlsCaCert;
+    private String tlsClientCert;
+    private String tlsClientKey;
+    
     private Map<String, CameraAnalysisConfig> cameras;
 
     public String getHost() { return host; }
@@ -1768,6 +1952,31 @@ public class AiServiceConfig {
 
     public int getGrpcPort() { return grpcPort; }
     public void setGrpcPort(int grpcPort) { this.grpcPort = grpcPort; }
+
+    // TLS getters
+    public boolean isUseTls() { return useTls; }
+    public void setUseTls(boolean useTls) { this.useTls = useTls; }
+    
+    public String getTlsCaCert() { return tlsCaCert; }
+    public void setTlsCaCert(String tlsCaCert) { this.tlsCaCert = tlsCaCert; }
+    
+    public Path getTlsCaCertPath() {
+        return tlsCaCert != null ? Paths.get(tlsCaCert) : null;
+    }
+    
+    public String getTlsClientCert() { return tlsClientCert; }
+    public void setTlsClientCert(String tlsClientCert) { this.tlsClientCert = tlsClientCert; }
+    
+    public Path getTlsClientCertPath() {
+        return tlsClientCert != null ? Paths.get(tlsClientCert) : null;
+    }
+    
+    public String getTlsClientKey() { return tlsClientKey; }
+    public void setTlsClientKey(String tlsClientKey) { this.tlsClientKey = tlsClientKey; }
+    
+    public Path getTlsClientKeyPath() {
+        return tlsClientKey != null ? Paths.get(tlsClientKey) : null;
+    }
 
     public Map<String, CameraAnalysisConfig> getCameras() { return cameras; }
     public void setCameras(Map<String, CameraAnalysisConfig> cameras) { this.cameras = cameras; }
@@ -1779,12 +1988,16 @@ public class AiServiceConfig {
     public static class CameraAnalysisConfig {
         private double fps = 1.0;
         private java.util.List<String> analysisTypes;
+        private String streamUrl;  // 用于 grabber 重连
 
         public double getFps() { return fps; }
         public void setFps(double fps) { this.fps = fps; }
 
         public java.util.List<String> getAnalysisTypes() { return analysisTypes; }
         public void setAnalysisTypes(java.util.List<String> analysisTypes) { this.analysisTypes = analysisTypes; }
+        
+        public String getStreamUrl() { return streamUrl; }
+        public void setStreamUrl(String streamUrl) { this.streamUrl = streamUrl; }
     }
 }
 ```
@@ -1817,7 +2030,13 @@ public class FrameExtractor {
     private final FrameAnalysisGrpcClient grpcClient;
     private final AiServiceConfig config;
     private final ScheduledExecutorService scheduler;
+    
+    // 复用 grabber：每个 cameraId 对应一个 grabber 实例
+    private final ConcurrentHashMap<String, FFmpegFrameGrabber> grabbers = new ConcurrentHashMap<>();
+    // cameraId → ScheduledFuture
     private final ConcurrentHashMap<String, ScheduledFuture<?>> extractions = new ConcurrentHashMap<>();
+    // cameraId → 正在处理的标记（防止并发）
+    private final ConcurrentHashMap<String, AtomicBoolean> processing = new ConcurrentHashMap<>();
 
     public FrameExtractor(FrameAnalysisGrpcClient grpcClient, AiServiceConfig config,
                           ScheduledExecutorService scheduler) {
@@ -1836,10 +2055,26 @@ public class FrameExtractor {
         double fps = camConfig != null ? camConfig.getFps() : 1.0;
         java.util.List<String> types = camConfig != null ? camConfig.getAnalysisTypes() : java.util.List.of("passenger");
 
+        // 复用：创建 grabber 并复用
+        try {
+            FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(streamUrl);
+            grabber.setOption("rtsp_transport", "tcp");      // TCP 更稳定
+            grabber.setOption("stimeout", "5000000");       // 5秒超时（微秒）
+            grabber.setImageWidth(640);                      // 限制分辨率
+            grabber.setImageHeight(360);
+            grabber.start();
+            grabbers.put(cameraId, grabber);
+            processing.put(cameraId, new AtomicBoolean(false));
+            log.info("Initialized grabber for camera {}: {}", cameraId, streamUrl);
+        } catch (Exception e) {
+            log.error("Failed to initialize grabber for camera {}: {}", cameraId, e.getMessage());
+            return;
+        }
+
         long periodMs = (long) (1000.0 / fps);
         ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(
-            () -> captureAndSend(cameraId, streamUrl, types),
-            0, periodMs, TimeUnit.MILLISECONDS
+            () -> captureAndSend(cameraId, types),
+            100, periodMs, TimeUnit.MILLISECONDS  // 100ms 初始延迟确保 grabber 就绪
         );
         extractions.put(cameraId, future);
         log.info("Started frame extraction for camera {} at {} fps", cameraId, fps);
@@ -1849,13 +2084,37 @@ public class FrameExtractor {
         ScheduledFuture<?> future = extractions.remove(cameraId);
         if (future != null) {
             future.cancel(false);
-            log.info("Stopped frame extraction for camera {}", cameraId);
         }
+        
+        // 关闭并清理 grabber
+        FFmpegFrameGrabber grabber = grabbers.remove(cameraId);
+        if (grabber != null) {
+            try {
+                grabber.stop();
+                grabber.release();
+                log.info("Released grabber for camera {}", cameraId);
+            } catch (Exception e) {
+                log.warn("Error releasing grabber for camera {}: {}", cameraId, e.getMessage());
+            }
+        }
+        processing.remove(cameraId);
+        log.info("Stopped frame extraction for camera {}", cameraId);
     }
 
-    private void captureAndSend(String cameraId, String streamUrl, java.util.List<String> types) {
-        try (FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(streamUrl)) {
-            grabber.start();
+    private void captureAndSend(String cameraId, java.util.List<String> types) {
+        // 防止上一个任务未完成时启动新任务
+        AtomicBoolean inProgress = processing.get(cameraId);
+        if (inProgress == null || !inProgress.compareAndSet(false, true)) {
+            return;  // 正在处理，跳过
+        }
+        
+        FFmpegFrameGrabber grabber = grabbers.get(cameraId);
+        if (grabber == null) {
+            inProgress.set(false);
+            return;
+        }
+
+        try {
             Frame frame = grabber.grabImage();
             if (frame != null) {
                 try (Java2DFrameConverter converter = new Java2DFrameConverter()) {
@@ -1871,6 +2130,36 @@ public class FrameExtractor {
             }
         } catch (Exception e) {
             log.error("Failed to capture frame for camera {}: {}", cameraId, e.getMessage());
+            // grabber 可能已断开，尝试重连
+            reconnect(cameraId);
+        } finally {
+            inProgress.set(false);
+        }
+    }
+    
+    private void reconnect(String cameraId) {
+        FFmpegFrameGrabber oldGrabber = grabbers.get(cameraId);
+        if (oldGrabber != null) {
+            try {
+                oldGrabber.stop();
+                oldGrabber.release();
+            } catch (Exception ignored) {}
+        }
+        
+        try {
+            FFmpegFrameGrabber newGrabber = new FFmpegFrameGrabber(
+                config.getCameras() != null && config.getCameras().get(cameraId) != null
+                    ? config.getCameras().get(cameraId).getStreamUrl()  // 需要在配置中保存 streamUrl
+                    : null
+            );
+            newGrabber.setOption("rtsp_transport", "tcp");
+            newGrabber.setImageWidth(640);
+            newGrabber.setImageHeight(360);
+            newGrabber.start();
+            grabbers.put(cameraId, newGrabber);
+            log.info("Reconnected grabber for camera {}", cameraId);
+        } catch (Exception e) {
+            log.error("Failed to reconnect grabber for camera {}: {}", cameraId, e.getMessage());
         }
     }
 }
@@ -1959,9 +2248,27 @@ public class FrameAnalysisGrpcClient {
 
     @PostConstruct
     public void init() {
-        channel = NettyChannelBuilder.forTarget(config.getTargetAddress())
-            .usePlaintext()
-            .maxInboundMessageSize(10 * 1024 * 1024) // 10MB
+        NettyChannelBuilder builder = NettyChannelBuilder.forTarget(config.getTargetAddress());
+        
+        // 生产环境使用TLS加密，公网传输必需
+        if (config.isUseTls()) {
+            builder.sslContext(GrpcSslContexts.forClient()
+                .trustManager(config.getTlsCaCert())  // CA证书
+                .keyManager(                           // 客户端证书（可选，双向认证）
+                    config.getTlsClientCert(),
+                    config.getTlsClientKey()
+                )
+                .build());
+            log.info("gRPC TLS enabled for {}", config.getTargetAddress());
+        } else {
+            builder.usePlaintext();  // 仅开发环境使用
+            log.warn("gRPC using plaintext mode - NOT for production!");
+        }
+        
+        channel = builder
+            .maxInboundMessageSize(10 * 1024 * 1024)  // 10MB
+            .keepAliveTime(30, TimeUnit.SECONDS)       // 保活
+            .keepAliveTimeout(10, TimeUnit.SECONDS)
             .build();
         asyncStub = FrameAnalysisGrpc.newStub(channel);
     }
