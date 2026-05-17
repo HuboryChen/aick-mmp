@@ -13,6 +13,7 @@ import com.aick.mmp.shared.model.EdgeNode;
 import com.aick.mmp.shared.model.Recording;
 import com.aick.mmp.central.repository.CameraRepository;
 import com.aick.mmp.central.repository.EdgeNodeRepository;
+import com.aick.mmp.central.service.CameraCredentialCacheService;
 import com.aick.mmp.central.service.CameraService;
 import com.aick.mmp.central.service.StreamingService;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +46,7 @@ public class CameraServiceImpl implements CameraService {
     private final ModelMapper modelMapper;
     private final com.aick.mmp.central.service.NodeWeightCalculator nodeWeightCalculator;
     private final EdgeNodeProperties edgeNodeProperties;
+    private final CameraCredentialCacheService credentialCacheService;
 
     /**
      * 批量分配的批次大小
@@ -179,6 +181,13 @@ public class CameraServiceImpl implements CameraService {
         }
 
         Camera savedCamera = cameraRepository.save(existingCamera);
+
+        // Invalidate credential cache if username or password was updated
+        if (cameraDTO.getUsername() != null ||
+            (cameraDTO.getPassword() != null && !"******".equals(cameraDTO.getPassword()))) {
+            credentialCacheService.invalidateCamera(id);
+        }
+
         return convertToDtoMasked(savedCamera);
     }
 
@@ -210,6 +219,9 @@ public class CameraServiceImpl implements CameraService {
                 edgeNodeRepository.save(node);
             });
         }
+
+        // Invalidate credential cache
+        credentialCacheService.invalidateCamera(id);
     }
 
     @Override
@@ -300,7 +312,19 @@ public class CameraServiceImpl implements CameraService {
     public List<CameraDTO> getCamerasByEdgeNode(Long edgeNodeId) {
         log.info("Fetching cameras for edge node: {}", edgeNodeId);
         return cameraRepository.findByEdgeNodeId(edgeNodeId).stream()
-                .map(this::convertToDto)
+                .map(camera -> {
+                    CameraDTO dto = convertToDto(camera);
+                    // Try cache first to avoid AES decryption
+                    String cached = credentialCacheService.getDecryptedPassword(camera.getId());
+                    if (cached != null) {
+                        dto.setPassword(cached);
+                    }
+                    // Cache the decrypted password for next time
+                    if (dto.getPassword() != null) {
+                        credentialCacheService.cacheDecryptedPassword(camera.getId(), dto.getPassword());
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -546,6 +570,9 @@ public class CameraServiceImpl implements CameraService {
         camera.setPassword(password);
         camera.setUpdatedAt(LocalDateTime.now());
         cameraRepository.save(camera);
+
+        // Invalidate credential cache
+        credentialCacheService.invalidateCamera(id);
     }
 
     @Override
@@ -557,6 +584,11 @@ public class CameraServiceImpl implements CameraService {
             } catch (Exception e) {
                 log.error("Failed to delete camera {}: {}", id, e.getMessage());
             }
+        }
+
+        // Bulk invalidate credential cache
+        if (!cameraIds.isEmpty()) {
+            credentialCacheService.invalidateCameras(cameraIds);
         }
     }
 
