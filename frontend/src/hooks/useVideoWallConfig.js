@@ -1,143 +1,174 @@
-import { useState, useEffect, useCallback } from 'react';
-import { userConfigApi } from '../utils/api';
-import { 
-  BUILT_IN_PRESETS, 
-  isBuiltInPreset, 
-  canEditPreset, 
-  canDeletePreset 
-} from '../components/VideoWall/builtInPresets';
+/**
+ * 视频墙配置 Hook
+ *
+ * 管理视频墙的布局、画质、码率、摄像头选择等配置状态，
+ * 提供 localStorage 同步和数据库持久化功能。
+ *
+ * 注意：本 Hook 不处理预设相关的状态或逻辑。
+ */
+
+import { useState, useCallback, useRef, useEffect } from 'react';
+import Cookies from 'js-cookie';
+import { videoWallConfigApi } from '../api/videoWallConfig';
+
+// ==================== 常量与辅助函数 ====================
 
 const VIDEO_WALL_CONFIG_KEY = 'VIDEO_WALL_CONFIG';
 
-const defaultConfig = {
+const DEBOUNCE_DELAY = 500;
+
+const DEFAULT_CONFIG = {
   layout: '4',
   quality: '720p',
-  selectedCameras: [],
+  bitrate: 2048,
+  cameraIds: [],
+  savedAt: 0,
 };
 
+const isAuthenticated = () => {
+  const token = Cookies.get('token');
+  return !!token;
+};
+
+// ==================== Hook ====================
+
 const useVideoWallConfig = () => {
-  const [config, setConfig] = useState(defaultConfig);
+  const [config, setConfig] = useState(DEFAULT_CONFIG);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // 从后端API加载配置
-  const loadConfigFromBackend = useCallback(async () => {
+  const debounceTimerRef = useRef(null);
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  // ==================== localStorage 同步 ====================
+
+  const saveToLocalStorage = useCallback((newConfig) => {
     try {
-      setIsLoading(true);
-      const response = await userConfigApi.getConfig(VIDEO_WALL_CONFIG_KEY);
-      if (response.data && response.data.configValue) {
-        const parsed = JSON.parse(response.data.configValue);
-        return {
-          layout: parsed.layout || defaultConfig.layout,
-          quality: parsed.quality || defaultConfig.quality,
-          selectedCameras: Array.isArray(parsed.selectedCameras) ? parsed.selectedCameras : [],
-        };
+      localStorage.setItem(VIDEO_WALL_CONFIG_KEY, JSON.stringify({
+        ...newConfig,
+        savedAt: Date.now(),
+      }));
+    } catch (e) {
+      console.error('localStorage save failed:', e);
+    }
+  }, []);
+
+  const loadFromLocalStorage = useCallback(() => {
+    try {
+      const stored = localStorage.getItem(VIDEO_WALL_CONFIG_KEY);
+      if (stored) {
+        return JSON.parse(stored);
       }
-    } catch (error) {
-      // 配置不存在或加载失败，使用本地存储作为备份
-      console.debug('Backend config not found, trying localStorage');
-      try {
-        const stored = localStorage.getItem(VIDEO_WALL_CONFIG_KEY);
-        if (stored) {
-          return JSON.parse(stored);
-        }
-      } catch (e) {
-        console.error('LocalStorage config parse failed:', e);
-      }
-    } finally {
-      setIsLoading(false);
+    } catch (e) {
+      console.error('localStorage load failed:', e);
     }
     return null;
   }, []);
 
-  // 加载配置
-  useEffect(() => {
-    const loadConfig = async () => {
-      const loadedConfig = await loadConfigFromBackend();
-      if (loadedConfig) {
-        setConfig(loadedConfig);
+  // ==================== 数据库同步 ====================
+
+  const loadFromDatabase = useCallback(async () => {
+    try {
+      const response = await videoWallConfigApi.getPreferences();
+      return response.data;
+    } catch (error) {
+      console.debug('Failed to load from database:', error);
+      return null;
+    }
+  }, []);
+
+  const debouncedSaveToDatabase = useCallback((newConfig) => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = setTimeout(async () => {
+      try {
+        await videoWallConfigApi.updatePreferences({
+          layout: newConfig.layout,
+          quality: newConfig.quality,
+          bitrate: newConfig.bitrate,
+          cameraIds: newConfig.cameraIds,
+        });
+        console.debug('Preferences saved to database');
+      } catch (error) {
+        console.error('Failed to save preferences to database:', error);
+        setError('保存到服务器失败');
       }
-      setIsLoaded(true);
-    };
-    loadConfig();
-  }, [loadConfigFromBackend]);
+    }, DEBOUNCE_DELAY);
+  }, []);
 
-  // 保存配置到后端API，同时备份到localStorage
-  const saveConfig = useCallback(async (newConfig) => {
-    const updated = { ...config, ...newConfig };
-    
-    // 先保存到本地，确保响应式更新
-    setConfig(updated);
-    
-    // 备份到localStorage
+  const saveToDatabaseImmediately = useCallback(async (newConfig) => {
     try {
-      localStorage.setItem(VIDEO_WALL_CONFIG_KEY, JSON.stringify(updated));
-    } catch (e) {
-      console.error('LocalStorage save failed:', e);
-    }
-    
-    // 异步保存到后端
-    try {
-      await userConfigApi.saveConfig(VIDEO_WALL_CONFIG_KEY, JSON.stringify(updated));
+      await videoWallConfigApi.updatePreferences({
+        layout: newConfig.layout,
+        quality: newConfig.quality,
+        bitrate: newConfig.bitrate,
+        cameraIds: newConfig.cameraIds,
+      });
+      console.debug('Preferences saved to database immediately');
     } catch (error) {
-      console.error('Backend config save failed:', error);
-      // 后端保存失败不影响本地使用
-    }
-  }, [config]);
-
-  // 更新布局
-  const setLayout = useCallback((layout) => {
-    saveConfig({ layout });
-  }, [saveConfig]);
-
-  // 更新画质
-  const setQuality = useCallback((quality) => {
-    saveConfig({ quality });
-  }, [saveConfig]);
-
-  // 更新选中的摄像头
-  const setSelectedCameras = useCallback((selectedCameras) => {
-    saveConfig({ selectedCameras });
-  }, [saveConfig]);
-
-  // 重置配置
-  const resetConfig = useCallback(async () => {
-    localStorage.removeItem(VIDEO_WALL_CONFIG_KEY);
-    setConfig(defaultConfig);
-    
-    try {
-      await userConfigApi.deleteConfig(VIDEO_WALL_CONFIG_KEY);
-    } catch (error) {
-      console.error('Backend config delete failed:', error);
+      console.error('Failed to save preferences to database:', error);
+      setError('保存到服务器失败');
     }
   }, []);
 
-  // 获取内置预设列表
-  const getBuiltInPresets = useCallback(() => {
-    return BUILT_IN_PRESETS;
-  }, []);
+  // ==================== 配置保存操作 ====================
 
-  // 获取所有预设（内置 + 用户自定义）
-  const getAllPresets = useCallback((userPresets = []) => {
-    return [...BUILT_IN_PRESETS, ...userPresets];
-  }, []);
+  const saveConfig = useCallback((newConfig) => {
+    setConfig(newConfig);
+    saveToLocalStorage(newConfig);
+    if (isAuthenticated()) {
+      debouncedSaveToDatabase(newConfig);
+    }
+  }, [saveToLocalStorage, debouncedSaveToDatabase]);
+
+  const saveConfigImmediately = useCallback(async (newConfig) => {
+    setConfig(newConfig);
+    saveToLocalStorage(newConfig);
+    if (isAuthenticated()) {
+      await saveToDatabaseImmediately(newConfig);
+    }
+  }, [saveToLocalStorage, saveToDatabaseImmediately]);
+
+  // ==================== 返回值 ====================
 
   return {
+    // 状态
     config,
     isLoaded,
     isLoading,
-    setLayout,
-    setQuality,
-    setSelectedCameras,
+    error,
+
+    // 内部 setter（供组合 Hook 使用）
+    setConfig,
+    setIsLoaded,
+    setIsLoading,
+    setError,
+
+    // 配置操作
     saveConfig,
-    resetConfig,
-    // 预设相关
-    builtInPresets: BUILT_IN_PRESETS,
-    getBuiltInPresets,
-    getAllPresets,
-    isBuiltInPreset,
-    canEditPreset,
-    canDeletePreset,
+    saveConfigImmediately,
+
+    // localStorage 同步
+    saveToLocalStorage,
+    loadFromLocalStorage,
+
+    // 数据库同步
+    loadFromDatabase,
+    saveToDatabaseImmediately,
+    debouncedSaveToDatabase,
+
+    // 常量
+    DEFAULT_CONFIG,
   };
 };
 
