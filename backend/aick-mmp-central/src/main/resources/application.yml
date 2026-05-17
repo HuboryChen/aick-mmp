@@ -188,6 +188,7 @@ security:
     # AES-256 encryption key for securing API secret keys
     # IMPORTANT: Must be at least 32 characters in production!
     secret-key: ${ENCRYPTION_SECRET_KEY:mmp-encryption-key-change-in-production}
+    camera-credential-key: ${CAMERA_CREDENTIAL_KEY:mmp-camera-encryption-key!!}
   allowed-origins: ${SECURITY_ALLOWED_ORIGINS:*}  # Comma-separated list of allowed origins
 
 # Authentication Configuration

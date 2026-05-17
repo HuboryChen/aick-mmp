@@ -74,6 +74,7 @@ security:
   # 加密密钥配置
   encryption:
     secret-key: ${ENCRYPTION_SECRET_KEY:mmp-encryption-key-change-in-prod}
+    camera-credential-key: ${CAMERA_CREDENTIAL_KEY:mmp-camera-encryption-key!!}
 
   # JWT安全令牌配置
   jwt:

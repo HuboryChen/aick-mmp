@@ -45,6 +45,7 @@ security:
 
   encryption:
     key: test-encryption-key-32bytes!!!
+    camera-credential-key: test-camera-key-32bytes!!!!
 
   signature:
     timestamp-tolerance-seconds: 300
