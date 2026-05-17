@@ -173,4 +173,4 @@ const useVideoWallConfig = () => {
 };
 
 export default useVideoWallConfig;
-export { useVideoWallConfig };
+export { useVideoWallConfig, isAuthenticated };

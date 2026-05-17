@@ -20,7 +20,7 @@ import {
 
 const VIDEO_WALL_PRESETS_KEY = 'VIDEO_WALL_PRESETS';
 
-const DEFAULT_CONFIG = {
+const PRESET_FALLBACK_CONFIG = {
   layout: '4',
   quality: '720p',
   bitrate: 2048,
@@ -90,9 +90,9 @@ const useVideoWallPresets = () => {
 
       const presetData = {
         presetName: name,
-        layout: effectiveConfig.layout || DEFAULT_CONFIG.layout,
-        quality: effectiveConfig.quality || DEFAULT_CONFIG.quality,
-        bitrate: effectiveConfig.bitrate || DEFAULT_CONFIG.bitrate,
+        layout: effectiveConfig.layout || PRESET_FALLBACK_CONFIG.layout,
+        quality: effectiveConfig.quality || PRESET_FALLBACK_CONFIG.quality,
+        bitrate: effectiveConfig.bitrate || PRESET_FALLBACK_CONFIG.bitrate,
         cameraIds: effectiveConfig.cameraIds || [],
         isDefault: false,
       };
@@ -270,7 +270,7 @@ const useVideoWallPresets = () => {
     loadUserPresetsFromDatabase,
 
     // 常量
-    DEFAULT_CONFIG,
+    PRESET_FALLBACK_CONFIG,
   };
 };
 

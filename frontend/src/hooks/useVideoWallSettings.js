@@ -9,18 +9,12 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import Cookies from 'js-cookie';
 import { videoWallConfigApi } from '../api/videoWallConfig';
 import { BUILT_IN_PRESETS } from '../components/VideoWall/builtInPresets';
-import useVideoWallConfig from './useVideoWallConfig';
+import useVideoWallConfig, { isAuthenticated } from './useVideoWallConfig';
 import useVideoWallPresets from './useVideoWallPresets';
 
 // ==================== 辅助函数 ====================
-
-const isAuthenticated = () => {
-  const token = Cookies.get('token');
-  return !!token;
-};
 
 const getDefaultPreset = () => {
   return BUILT_IN_PRESETS.find(p => p.isDefault) || BUILT_IN_PRESETS[0];
@@ -288,6 +282,56 @@ const useVideoWallSettings = () => {
   // ==================== 转发函数（预设操作中不需要跨域处理的） ====================
 
   /**
+   * 更新预设
+   */
+  const updatePreset = useCallback(async (presetId, updates) => {
+    setIsLoading(true);
+    try {
+      return await presetHook.updatePreset(presetId, updates);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [presetHook.updatePreset]);
+
+  /**
+   * 删除预设
+   */
+  const deletePreset = useCallback(async (presetId) => {
+    setIsLoading(true);
+    try {
+      return await presetHook.deletePreset(presetId);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [presetHook.deletePreset]);
+
+  /**
+   * 设为默认预设
+   */
+  const setAsDefaultPreset = useCallback(async (presetId) => {
+    setIsLoading(true);
+    try {
+      return await presetHook.setAsDefaultPreset(presetId);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [presetHook.setAsDefaultPreset]);
+
+  /**
+   * 重新排序预设
+   */
+  const reorderPresets = useCallback(async (newOrder) => {
+    setIsLoading(true);
+    try {
+      return await presetHook.reorderPresets(newOrder);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [presetHook.reorderPresets]);
+
+  // ==================== 转发函数（预设操作中不需要跨域处理的） ====================
+
+  /**
    * 获取所有预设（内置 + 用户自定义）
    */
   const getAllPresets = useCallback(() => {
@@ -323,10 +367,10 @@ const useVideoWallSettings = () => {
     getAllPresets,
     applyPreset,
     createPreset,
-    updatePreset: presetHook.updatePreset,
-    deletePreset: presetHook.deletePreset,
-    setAsDefaultPreset: presetHook.setAsDefaultPreset,
-    reorderPresets: presetHook.reorderPresets,
+    updatePreset,
+    deletePreset,
+    setAsDefaultPreset,
+    reorderPresets,
 
     // 预设辅助函数
     isBuiltInPreset: presetHook.isBuiltInPreset,
