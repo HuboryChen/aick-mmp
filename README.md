@@ -446,6 +446,26 @@ npm start
 - **操作员**: operator / operator123
 - **观察员**: viewer / viewer123
 
+## 📚 文档地图
+
+| 你想要的 | 在哪找 |
+|----------|--------|
+| 项目整体了解 | `README.md` |
+| 架构设计 | `ARCHITECTURE.md` |
+| AI 协作约束 | `CLAUDE.md` |
+| 用户需求文档 | `openspec/specs/requirements/` |
+| 架构规格文档 | `openspec/specs/architecture/` |
+| AI 能力规格 | `openspec/specs/<能力名称>/` |
+| 运维手册 | `docs/ops/` |
+| SQL 迁移脚本 | `backend/.../resources/db/migration/` |
+| 数据库设计文档 | `docs/sql/` |
+| 前端设计 | `docs/frontend/` |
+| 测试方案 | `docs/testing/` |
+| 部署配置 | `deploy/` |
+
+> **注**：旧 `spec/` 目录已废弃，内容已迁移至 `openspec/specs/` 下对应子目录。
+> 不再活跃的 AI 工具配置（.qoder/.trae/.codebuddy）已清理，仅保留 `.claude/`。
+
 ## 📁 项目结构
 
 ```
