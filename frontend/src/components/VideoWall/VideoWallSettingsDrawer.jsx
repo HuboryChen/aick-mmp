@@ -50,6 +50,8 @@ const VideoWallSettingsDrawer = ({
   const [localLayout, setLocalLayout] = useState('4');
   const [localQuality, setLocalQuality] = useState('720p');
   const [localBitrate, setLocalBitrate] = useState(2048);
+  // 保存成功后展示绿色对勾的时长 (毫秒)
+  const SUCCESS_DISPLAY_MS = 1500;
   // 保存状态：saving 为 true 时按钮显示加载/成功反馈
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -106,7 +108,7 @@ const VideoWallSettingsDrawer = ({
       // 切换到成功状态，展示绿色对勾
       setSaveSuccess(true);
       // 保持成功显示 1.5 秒让用户看到反馈
-      await new Promise((r) => setTimeout(r, 1500));
+      await new Promise((r) => setTimeout(r, SUCCESS_DISPLAY_MS));
     } catch {
       message.error('设置保存失败', 2);
     } finally {
