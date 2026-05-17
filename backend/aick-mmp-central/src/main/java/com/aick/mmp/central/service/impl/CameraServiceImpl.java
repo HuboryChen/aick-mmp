@@ -55,7 +55,7 @@ public class CameraServiceImpl implements CameraService {
     public Page<CameraDTO> getAllCameras(Pageable pageable) {
         log.info("Fetching all cameras with pagination: {}", pageable);
         return cameraRepository.findAll(pageable)
-                .map(this::convertToDto);
+                .map(this::convertToDtoMasked);
     }
 
     @Override
@@ -89,14 +89,14 @@ public class CameraServiceImpl implements CameraService {
         };
 
         return cameraRepository.findAll(spec, request.getPageable())
-                .map(this::convertToDto);
+                .map(this::convertToDtoMasked);
     }
 
     @Override
     public CameraDTO getCameraById(Long id) {
         Camera camera = cameraRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
-        return convertToDto(camera);
+        return convertToDtoMasked(camera);
     }
 
     @Override
@@ -124,7 +124,7 @@ public class CameraServiceImpl implements CameraService {
         }
 
         Camera savedCamera = cameraRepository.save(camera);
-        return convertToDto(savedCamera);
+        return convertToDtoMasked(savedCamera);
     }
 
     @Override
@@ -149,6 +149,14 @@ public class CameraServiceImpl implements CameraService {
             existingCamera.setStatus(cameraDTO.getStatus());
         }
         existingCamera.setRegionId(cameraDTO.getRegionId());
+        // Only update password if a new value is provided (not masked placeholder)
+        if (cameraDTO.getPassword() != null && !"******".equals(cameraDTO.getPassword())) {
+            existingCamera.setPassword(cameraDTO.getPassword());
+        }
+        // Also update username if provided
+        if (cameraDTO.getUsername() != null) {
+            existingCamera.setUsername(cameraDTO.getUsername());
+        }
         existingCamera.setUpdatedAt(LocalDateTime.now());
 
         // 如果更换了边缘节点
@@ -171,7 +179,7 @@ public class CameraServiceImpl implements CameraService {
         }
 
         Camera savedCamera = cameraRepository.save(existingCamera);
-        return convertToDto(savedCamera);
+        return convertToDtoMasked(savedCamera);
     }
 
     @Override
@@ -285,7 +293,7 @@ public class CameraServiceImpl implements CameraService {
     public Page<CameraDTO> getCamerasByStatus(Camera.CameraStatus status, Pageable pageable) {
         log.info("Fetching cameras with status: {}", status);
         return cameraRepository.findByStatus(status, pageable)
-                .map(this::convertToDto);
+                .map(this::convertToDtoMasked);
     }
 
     @Override
@@ -322,7 +330,7 @@ public class CameraServiceImpl implements CameraService {
             });
         }
 
-        return convertToDto(camera);
+        return convertToDtoMasked(camera);
     }
 
     @Override
@@ -348,7 +356,7 @@ public class CameraServiceImpl implements CameraService {
     public List<CameraDTO> getDeletedCameras() {
         log.info("Fetching all deleted cameras");
         return cameraRepository.findAllDeleted().stream()
-                .map(this::convertToDto)
+                .map(this::convertToDtoMasked)
                 .collect(Collectors.toList());
     }
 
@@ -356,7 +364,7 @@ public class CameraServiceImpl implements CameraService {
     public List<CameraDTO> getAllOnlineCameras() {
         log.info("Fetching all online cameras");
         return cameraRepository.findByStatus(Camera.CameraStatus.ONLINE).stream()
-                .map(this::convertToDto)
+                .map(this::convertToDtoMasked)
                 .collect(Collectors.toList());
     }
 
@@ -408,6 +416,15 @@ public class CameraServiceImpl implements CameraService {
             regionRepository.findById(camera.getRegionId())
                 .ifPresent(region -> dto.setRegionName(region.getName()));
         }
+        return dto;
+    }
+
+    /**
+     * Convert to DTO with password masked for management API responses.
+     */
+    private CameraDTO convertToDtoMasked(Camera camera) {
+        CameraDTO dto = convertToDto(camera);
+        dto.setPassword("******");
         return dto;
     }
 
@@ -581,7 +598,7 @@ public class CameraServiceImpl implements CameraService {
     public List<CameraDTO> getOnlineCamerasByEdgeNode(Long edgeNodeId) {
         log.info("Fetching online cameras for edge node: {}", edgeNodeId);
         return cameraRepository.findByEdgeNodeIdAndStatus(edgeNodeId, Camera.CameraStatus.ONLINE).stream()
-                .map(this::convertToDto)
+                .map(this::convertToDtoMasked)
                 .collect(Collectors.toList());
     }
 
