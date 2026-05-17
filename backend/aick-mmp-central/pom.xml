@@ -177,6 +177,13 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- MinIO SDK -->
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+            <version>8.5.7</version>
+        </dependency>
+
         <!-- HTTP Client for Webhook notifications -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
