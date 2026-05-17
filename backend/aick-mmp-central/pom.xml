@@ -60,6 +60,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Test Database -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Message Queue -->
         <dependency>
             <groupId>org.springframework.kafka</groupId>
@@ -133,6 +140,22 @@
                     <artifactId>scala-reflect</artifactId>
                     <groupId>org.scala-lang</groupId>
                 </exclusion>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.module</groupId>
+                    <artifactId>jackson-module-scala_2.13</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang.modules</groupId>
+                    <artifactId>scala-collection-compat_2.13</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.scala-lang.modules</groupId>
+                    <artifactId>scala-java8-compat_2.13</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.typesafe.scala-logging</groupId>
+                    <artifactId>scala-logging_2.13</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
 
@@ -177,7 +200,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.7</version>
+                <version>0.8.12</version>
                 <executions>
                     <execution>
                         <goals>

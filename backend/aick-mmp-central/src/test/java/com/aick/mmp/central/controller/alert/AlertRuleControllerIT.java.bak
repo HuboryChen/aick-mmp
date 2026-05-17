@@ -1,0 +1,218 @@
+package com.aick.mmp.central.controller.alert;
+
+import com.aick.mmp.central.common.BaseIntegrationTest;
+import com.aick.mmp.central.controller.AlertRuleController;
+import com.aick.mmp.central.dto.AlertRuleRequest;
+import com.aick.mmp.shared.model.AlertRule;
+import com.aick.mmp.shared.model.AlertRuleTemplate;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@SpringBootTest(classes = com.aick.mmp.central.CentralApplication.class)
+@AutoConfigureMockMvc
+public class AlertRuleControllerIT extends BaseIntegrationTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockBean
+    private com.aick.mmp.central.service.AlertRuleService alertRuleService;
+
+    @MockBean
+    private com.aick.mmp.central.service.AlertRuleTemplateService alertRuleTemplateService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Test
+    @DisplayName("should return 201 when creating alert rule")
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void shouldReturn201WhenCreatingAlertRule() throws Exception {
+        // Given
+        AlertRuleRequest request = AlertRuleRequest.builder()
+                .name("New Alert Rule")
+                .alertType(AlertRule.AlertType.THRESHOLD)
+                .level(AlertRule.AlertLevel.WARNING)
+                .targetType(AlertRule.TargetType.CAMERA)
+                .enabled(true)
+                .warningThreshold(80.0)
+                .criticalThreshold(90.0)
+                .build();
+
+        com.aick.mmp.shared.model.AlertRule createdRule = new com.aick.mmp.shared.model.AlertRule();
+        createdRule.setId(1L);
+        createdRule.setName("New Alert Rule");
+        createdRule.setAlertType(AlertRule.AlertType.THRESHOLD);
+        createdRule.setLevel(AlertRule.AlertLevel.WARNING);
+        createdRule.setTargetType(AlertRule.TargetType.CAMERA);
+        createdRule.setEnabled(true);
+        createdRule.setWarningThreshold(80.0);
+        createdRule.setCriticalThreshold(90.0);
+        createdRule.setCreatedAt(LocalDateTime.now());
+
+        given(alertRuleService.createRule(any(AlertRuleRequest.class), any(Long.class))).willReturn(createdRule);
+
+        // When & Then
+        mockMvc.perform(post("/v1/alert-rules")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("New Alert Rule"))
+                .andExpect(jsonPath("$.message").value("Alert rule created successfully"));
+    }
+
+    @Test
+    @DisplayName("should return 400 when creating alert rule with invalid data")
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void shouldReturn400WhenCreatingAlertRuleWithInvalidData() throws Exception {
+        // Given
+        AlertRuleRequest request = AlertRuleRequest.builder()
+                .name("") // Invalid empty name
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/v1/alert-rules")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @DisplayName("should return 403 when non-admin tries to create alert rule")
+    @WithMockUser(username = "operator", roles = {"OPERATOR"})
+    void shouldReturn403WhenNonAdminTriesToCreateAlertRule() throws Exception {
+        // Given
+        AlertRuleRequest request = AlertRuleRequest.builder()
+                .name("New Alert Rule")
+                .alertType(AlertRule.AlertType.THRESHOLD)
+                .build();
+
+        // When & Then
+        mockMvc.perform(post("/v1/alert-rules")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("should return alert rule by id")
+    @WithMockUser(username = "viewer", roles = {"VIEWER"})
+    void shouldReturnAlertRuleById() throws Exception {
+        // Given
+        com.aick.mmp.shared.model.AlertRule rule = new com.aick.mmp.shared.model.AlertRule();
+        rule.setId(1L);
+        rule.setName("Test Alert Rule");
+        rule.setAlertType(AlertRule.AlertType.THRESHOLD);
+        rule.setLevel(AlertRule.AlertLevel.WARNING);
+        rule.setTargetType(AlertRule.TargetType.CAMERA);
+        rule.setEnabled(true);
+
+        given(alertRuleService.getRule(1L)).willReturn(java.util.Optional.of(rule));
+
+        // When & Then
+        mockMvc.perform(get("/v1/alert-rules/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.name").value("Test Alert Rule"));
+    }
+
+    @Test
+    @DisplayName("should return 404 when alert rule not found")
+    @WithMockUser(username = "viewer", roles = {"VIEWER"})
+    void shouldReturn404WhenAlertRuleNotFound() throws Exception {
+        // Given
+        given(alertRuleService.getRule(999L)).willReturn(java.util.Optional.empty());
+
+        // When & Then
+        mockMvc.perform(get("/v1/alert-rules/999"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("should list alert rules with pagination")
+    @WithMockUser(username = "viewer", roles = {"VIEWER"})
+    void shouldListAlertRulesWithPagination() throws Exception {
+        // Given
+        com.aick.mmp.shared.model.AlertRule rule1 = new com.aick.mmp.shared.model.AlertRule();
+        rule1.setId(1L);
+        rule1.setName("Rule 1");
+
+        com.aick.mmp.shared.model.AlertRule rule2 = new com.aick.mmp.shared.model.AlertRule();
+        rule2.setId(2L);
+        rule2.setName("Rule 2");
+
+        Page<AlertRule> rulesPage = new PageImpl<>(List.of(rule1, rule2));
+
+        given(alertRuleService.listRules(any(Pageable.class))).willReturn(rulesPage);
+
+        // When & Then
+        mockMvc.perform(get("/v1/alert-rules?page=0&size=10&sortBy=createdAt&sortDir=DESC"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content[0].id").value(1))
+                .andExpect(jsonPath("$.content[0].name").value("Rule 1"));
+    }
+
+    @Test
+    @DisplayName("should return 200 when enabling alert rule")
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void shouldReturn200WhenEnablingAlertRule() throws Exception {
+        // Given
+        doNothing().when(alertRuleService).enableRule(1L);
+
+        // When & Then
+        mockMvc.perform(post("/v1/alert-rules/1/enable"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Alert rule enabled successfully"));
+    }
+
+    @Test
+    @DisplayName("should return 200 when disabling alert rule")
+    @WithMockUser(username = "admin", roles = {"ADMIN"})
+    void shouldReturn200WhenDisablingAlertRule() throws Exception {
+        // Given
+        doNothing().when(alertRuleService).disableRule(1L);
+
+        // When & Then
+        mockMvc.perform(post("/v1/alert-rules/1/disable"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Alert rule disabled successfully"));
+    }
+
+    @Test
+    @DisplayName("should return templates list")
+    @WithMockUser(username = "viewer", roles = {"VIEWER"})
+    void shouldReturnTemplatesList() throws Exception {
+        // Given
+        List<AlertRuleTemplate> templates = List.of(new AlertRuleTemplate());
+        given(alertRuleTemplateService.getEnabledTemplates()).willReturn(templates);
+
+        // When & Then
+        mockMvc.perform(get("/v1/alert-rules/templates"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isArray());
+    }
+}
