@@ -5,7 +5,7 @@
 /* 抽屉容器 */
 .video-wall-settings-drawer .ant-drawer-body {
   padding: 16px;
-  background-color: #fafafa;
+  background-color: var(--color-bg-elevated);
 }
 
 /* 抽屉区域 */
@@ -41,7 +41,7 @@
 
 /* ========== 预设选择器样式 ========== */
 .preset-selector {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   padding: 12px;
 }
@@ -66,29 +66,29 @@
   display: flex;
   align-items: center;
   padding: 10px 12px;
-  background: #fff;
-  border: 1px solid #e8e8e8;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border);
   border-radius: 6px;
   transition: all 0.2s ease;
 }
 
 .preset-item:hover {
-  border-color: #1890ff;
-  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.1);
+  border-color: var(--color-accent);
+  box-shadow: var(--shadow-glow);
 }
 
 .preset-item-active {
-  background: #e6f7ff;
-  border-color: #1890ff;
+  background: rgba(0, 212, 255, 0.08);
+  border-color: var(--color-accent);
 }
 
 .preset-item-builtin {
-  background: #fffbf0;
-  border-color: #ffe58f;
+  background: var(--color-bg-card);
+  border-color: rgba(251, 191, 36, 0.3);
 }
 
 .preset-item-drag-handle {
-  color: #999;
+  color: var(--color-text-muted);
   cursor: grab;
 }
 
@@ -102,19 +102,19 @@
 
 /* ========== 布局选择器样式 ========== */
 .layout-selector {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   padding: 12px;
 }
 
 .layout-selector-title {
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 /* ========== 画质选择器样式 ========== */
 .quality-selector {
-  background: #fff;
+  background: var(--color-bg-card);
   border-radius: 8px;
   padding: 12px;
 }
@@ -125,21 +125,21 @@
 
 .quality-selector-title {
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-primary);
 }
 
 /* ========== 设置预览样式 ========== */
 .settings-preview {
   margin-top: 16px;
   padding: 12px;
-  background: #f5f5f5;
+  background: var(--color-bg-secondary);
   border-radius: 8px;
-  border: 1px dashed #d9d9d9;
+  border: 1px dashed var(--color-border);
 }
 
 .preview-title {
   font-weight: 500;
-  color: #666;
+  color: var(--color-text-secondary);
   margin-bottom: 8px;
   font-size: 12px;
 }
@@ -157,11 +157,11 @@
 }
 
 .preview-label {
-  color: #999;
+  color: var(--color-text-muted);
 }
 
 .preview-value {
-  color: #333;
+  color: var(--color-text-primary);
   font-weight: 500;
 }
 
