@@ -1,5 +1,6 @@
 package com.aick.mmp.shared.model;
 
+import com.aick.mmp.shared.converter.CameraPasswordEncryptor;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -42,7 +43,8 @@ public class Camera {
     @Column(name = "username")
     private String username;
 
-    @Column(name = "password")
+    @Column(name = "password", length = 512)
+    @Convert(converter = CameraPasswordEncryptor.class)
     private String password;
 
     @Column(name = "resolution")
