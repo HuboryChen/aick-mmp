@@ -9,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Size;
 import org.hibernate.annotations.Where;
 import java.time.LocalDateTime;
 
@@ -43,7 +44,8 @@ public class Camera {
     @Column(name = "username")
     private String username;
 
-    @Column(name = "password", length = 512)
+    @Column(name = "password", length = 1024)
+    @Size(max = 300, message = "Password cannot exceed 300 characters")
     @Convert(converter = CameraPasswordEncryptor.class)
     private String password;
 

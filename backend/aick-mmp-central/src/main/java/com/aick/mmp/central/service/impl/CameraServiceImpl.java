@@ -366,6 +366,9 @@ public class CameraServiceImpl implements CameraService {
                 .orElseThrow(() -> new ResourceNotFoundException("Camera not found with id: " + id));
         cameraRepository.delete(camera);
 
+        // Invalidate credential cache
+        credentialCacheService.invalidateCamera(id);
+
         // 减少边缘节点的摄像头计数
         if (camera.getEdgeNodeId() != null) {
             edgeNodeRepository.findById(camera.getEdgeNodeId()).ifPresent(node -> {
