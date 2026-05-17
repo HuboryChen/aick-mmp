@@ -43,24 +43,26 @@ AICK-MMP（AI Camera Kit - Multi-region Monitoring Platform）是一个企业级
 graph TB
     subgraph "前端层 Frontend Layer"
         UI[React 18 + Ant Design]
-        UI --> Pages[页面组件]
-        UI --> Components[公共组件]
     end
 
     subgraph "负载均衡层 Load Balancer"
-        CLB[中央负载均衡器<br/>Nginx]
-        ELB[边缘负载均衡器<br/>Nginx]
+        CLB[中央负载均衡器<br/>Nginx :8090]
+        ELB[边缘负载均衡器<br/>Nginx :8083]
     end
 
     subgraph "后端服务层 Backend Services"
         subgraph "中央服务 Central Services"
-            Backend1[后端服务 1<br/>Spring Boot 3.2.5]
-            Backend2[后端服务 2<br/>Spring Boot 3.2.5]
+            Backend[后端服务<br/>Spring Boot 3.2.5]
+            MinIO[(MinIO<br/>快照存储)]
         end
         
         subgraph "边缘节点 Edge Nodes"
             EdgeNode1[边缘节点 1<br/>Region A]
             EdgeNode2[边缘节点 2<br/>Region A]
+        end
+
+        subgraph "AI 分析服务 AI Service"
+            AIService[AI Service<br/>FastAPI + ONNX Runtime]
         end
     end
 
@@ -71,36 +73,47 @@ graph TB
         end
         
         subgraph "消息队列 Message Queue"
-            Kafka[Apache Kafka<br/>事件流处理]
+            Kafka[Apache Kafka<br/>3 Topics + DLQ]
             Zookeeper[Zookeeper<br/>Kafka协调器]
         end
         
         subgraph "流媒体服务 Media Services"
             Janus[Janus WebRTC Gateway<br/>视频流处理]
+            RTSP[RTSP Server<br/>MediaMTX]
         end
     end
 
     subgraph "外部设备 External Devices"
         Camera1[IP摄像头 1<br/>RTSP/ONVIF]
         Camera2[IP摄像头 2<br/>GB28181]
-        Camera3[IP摄像头 3<br/>HTTP流]
     end
 
-    %% 连接关系
+    %% 前端 → 后端
     UI --> CLB
-    CLB --> Backend1
-    CLB --> Backend2
+    CLB --> Backend
     ELB --> EdgeNode1
     ELB --> EdgeNode2
     
-    Backend1 --> MySQL
-    Backend1 --> Redis
-    Backend1 --> Kafka
-    Backend2 --> Janus
+    %% 中央服务 → 基础设施
+    Backend --> MySQL
+    Backend --> Redis
+    Backend --> Kafka
+    Backend --> Janus
+    Backend --> MinIO
     
+    %% 边缘节点 → AI 服务 (gRPC)
+    EdgeNode1 -->|gRPC 帧流| AIService
+    EdgeNode2 -->|gRPC 帧流| AIService
+    
+    %% AI 服务 → Kafka
+    AIService -->|客流/行为/车牌| Kafka
+    
+    %% 中央服务 ← Kafka
+    Kafka -->|3 Topics| Backend
+    
+    %% 边缘节点 → 摄像头
     EdgeNode1 --> Camera1
     EdgeNode2 --> Camera2
-    EdgeNode2 --> Camera3
 ```
 
 ### 核心组件说明
@@ -114,6 +127,7 @@ graph TB
 | **数据存储层** | 持久化和缓存 | MySQL 8.0, Redis 6.2 |
 | **消息队列层** | 异步消息处理 | Apache Kafka, Zookeeper |
 | **流媒体层** | 视频流处理 | Janus WebRTC Gateway |
+| **AI分析层** | 智能视频分析 | FastAPI, YOLOv8, ONNX Runtime, GPU |
 
 ## 🚀 功能特性
 
@@ -165,6 +179,23 @@ graph TB
 - [x] **节点过滤**：自动排除离线、过载节点
 - [x] **最优推荐**：添加摄像头时推荐最优边缘节点
 
+#### 🧠 AI 智能分析系统（v2.0 新增）
+- [x] **客流分析**：基于 YOLOv8 + ByteTrack 的进出人数统计与区域人数统计
+- [x] **行为识别引擎**：支持徘徊检测、区域入侵、人群聚集、跌倒检测等规则
+- [x] **车牌识别**：YOLOv8 车牌检测 + LPRNet 字符识别，支持白名单/黑名单
+- [x] **gRPC 帧传输**：边缘节点通过 gRPC 流式传输 RTSP 帧到 AI 服务
+- [x] **Kafka 结果分发**：AI 分析结果通过 3 个 Topic 异步推送至中央服务
+- [x] **集中式 GPU 推理**：单节点 GPU 推理，ONNX Runtime + CUDA 加速
+- [x] **黑名单告警**：黑名单车辆检测时自动创建 CRITICAL 告警并触发录像
+- [x] **AI 分析配置**：每摄像头独立配置分析类型、帧率、检测阈值
+- [x] **AI 看板**：客流仪表盘、行为告警中心、车牌管理、配置管理页面
+- [x] **区域热力图**：按时段聚合的客流热力分布可视化
+- [x] **客流预测**：基于历史数据的移动平均客流趋势预测
+- [x] **MinIO 快照存储**：行为告警截图与车牌截图的对象存储与管理
+- [x] **告警触发录像**：黑名单等关键告警自动触发 5 分钟录制
+- [x] **Prometheus 监控**：AI 服务 GPU/延迟/吞吐/Kafka 积压监控与告警规则
+- [x] **Grafana 看板**：8 面板 AI 服务可视化监控看板
+
 ### 👥 用户权限功能
 
 - [x] **用户认证**：JWT Token身份验证
@@ -187,7 +218,7 @@ graph TB
 |------|------|------|
 | **Java** | 21 | 主要编程语言 |
 | **Spring Boot** | 3.2.5 | 微服务框架 |
-| **Spring Security** | 5.x | 安全认证框架 |
+| **Spring Security** | 6.x | 安全认证框架 |
 | **Spring Data JPA** | 2.7.x | 数据持久层 |
 | **MySQL** | 8.0 | 主数据库 |
 | **Redis** | 6.2 | 缓存和会话存储 |
@@ -195,6 +226,13 @@ graph TB
 | **Janus Gateway** | Latest | WebRTC媒体服务器 |
 | **Maven** | 3.6+ | 构建工具 |
 | **Docker** | Latest | 容器化部署 |
+| **Python** | 3.11 | AI 分析服务 |
+| **FastAPI** | Latest | AI 服务 HTTP/WebSocket 框架 |
+| **gRPC** | Latest | 帧流式传输协议 |
+| **ONNX Runtime** | Latest | 跨平台模型推理引擎 |
+| **YOLOv8** | Ultralytics | 目标检测模型 |
+| **ByteTrack** | Latest | 多目标跟踪算法 |
+| **LPRNet** | Latest | 车牌字符识别模型 |
 
 ### 前端技术栈
 
@@ -207,7 +245,6 @@ graph TB
 | **Axios** | 1.5.0 | HTTP客户端 |
 | **WebRTC** | Latest | 实时音视频通信 |
 | **Chart.js** | 4.4.0 | 图表组件 |
-| **Socket.IO** | 4.7.2 | 实时通信 |
 
 ## 🎨 UI/UX 亮点
 
@@ -363,18 +400,34 @@ npm start
 | `SPRING_REDIS_HOST` | redis | Redis主机地址 |
 | `JANUS_SERVER_URL` | http://janus:8088 | Janus服务器地址 |
 | `NODE_ID` | - | 节点唯一标识 |
-| `ZONE` | - | 部署区域标识 |
+| `REGION` | - | 部署区域标识 |
+| `MINIO_ENDPOINT` | http://minio:9000 | MinIO 服务地址 |
+| `MINIO_ACCESS_KEY` | minioadmin | MinIO 访问密钥 |
+| `MINIO_SECRET_KEY` | minioadmin123 | MinIO 秘密密钥 |
+| `MINIO_BUCKET_NAME` | ai-snapshots | MinIO 存储桶名称 |
+| `AI_KAFKA_BOOTSTRAP_SERVERS` | kafka:29092 | AI 服务 Kafka 地址 |
+| `AI_MODEL_DIR` | /app/models | AI 模型文件目录 |
+| `AI_SERVICE_HOST` | ai-service | AI 服务 gRPC 地址 |
+| `AI_SERVICE_GRPC_PORT` | 50051 | AI 服务 gRPC 端口 |
 
 ### 端口映射
 
 | 服务 | 内部端口 | 外部端口 | 说明 |
 |------|----------|----------|------|
+| AI服务 | 8000/50051 | 8000/50051 | HTTP API + gRPC |
 | 前端Web | 80 | 80 | 主要访问入口 |
-| 中央负载均衡 | 80 | 8080 | API网关 |
+| 中央负载均衡 | 80 | 8090 | API网关 |
+| 中央服务 | 8080 | - | Spring Boot (内部) |
 | 边缘负载均衡 | 80 | 8083 | 边缘节点API |
+| 边缘节点 | 8080 | 8081 | Spring Boot (内部) |
 | MySQL | 3306 | 3306 | 数据库服务 |
 | Redis | 6379 | 6379 | 缓存服务 |
 | Kafka | 9092 | 9092 | 消息队列 |
+| MinIO API | 9000 | 9000 | 对象存储API |
+| MinIO Console | 9001 | 9001 | 管理控制台 |
+| RTSP Server | 8554 | 8554 | RTSP视频流 |
+| RTMP Server | 1935 | 1935 | RTMP推流 |
+| RTSP HTTP | 8888 | 8888 | HTTP管理接口 |
 | Janus HTTP | 8088 | 8088 | WebRTC HTTP |
 | Janus WebSocket | 8188 | 8188 | WebRTC WebSocket |
 | Janus Admin | 8089 | 8089 | Janus管理接口 |
@@ -384,7 +437,7 @@ npm start
 ### Web界面
 
 - **主要入口**: http://localhost:80
-- **管理后台**: http://localhost:8080
+- **管理后台**: http://localhost:8090
 - **边缘节点**: http://localhost:8083
 
 ### 默认账户
@@ -398,17 +451,19 @@ npm start
 ```
 aick-mmp/
 ├── backend/                 # 后端服务
-│   ├── src/main/java/com/aick/mmp/
-│   │   ├── adapter/         # 协议适配器
-│   │   ├── config/          # 配置类
-│   │   ├── controller/      # 控制器
-│   │   ├── dto/             # 数据传输对象
-│   │   ├── model/           # 数据模型
-│   │   ├── repository/      # 数据访问层
-│   │   ├── service/         # 业务逻辑层
-│   │   └── util/            # 工具类
-│   ├── Dockerfile           # 后端容器配置
-│   └── pom.xml              # Maven配置
+│   ├── aick-mmp-parent/     # 依赖管理
+│   ├── aick-mmp-shared/     # 共享模块（实体、工具、DTO）
+│   ├── aick-mmp-central/    # 中央服务
+│   └── aick-mmp-edge/       # 边缘节点服务
+├── aick-mmp-ai/             # AI 智能分析服务（Python FastAPI）
+│   ├── src/
+│   │   ├── api/             # FastAPI 入口与路由
+│   │   ├── services/        # 分析服务（检测/跟踪/行为/车牌）
+│   │   ├── models/          # 模型加载与推理
+│   │   └── proto/           # gRPC protobuf 定义
+│   ├── tests/               # 单元测试
+│   ├── Dockerfile           # GPU 容器配置
+│   └── requirements.txt     # Python 依赖
 ├── frontend/                # 前端应用
 │   ├── public/              # 静态资源
 │   ├── src/
@@ -436,7 +491,9 @@ aick-mmp/
 ```http
 POST /api/auth/login          # 用户登录
 POST /api/auth/logout         # 用户登出
-GET  /api/auth/profile        # 获取用户信息
+GET  /api/auth/me             # 获取当前用户信息
+POST /api/auth/refresh        # 刷新 Token
+POST /api/auth/validate       # 验证 Token
 ```
 
 ### 摄像头管理
@@ -461,9 +518,9 @@ PUT    /api/edge-nodes/{id}   # 更新节点配置
 ### 流媒体控制
 
 ```http
-POST   /api/streaming/start   # 开始视频流
-POST   /api/streaming/stop    # 停止视频流
-GET    /api/streaming/status  # 获取流状态
+POST   /api/streaming/{cameraId}/start   # 开始视频流
+POST   /api/streaming/{cameraId}/stop    # 停止视频流
+GET    /api/streaming/{cameraId}/status  # 获取流状态
 ```
 
 ### 配置模板管理
@@ -490,6 +547,33 @@ DELETE /api/camera-discovery/scan/{id}        # 取消扫描
 POST   /api/camera-discovery/test-connectivity # 连通性测试
 POST   /api/camera-discovery/identify         # 设备识别
 GET    /api/camera-discovery/history          # 扫描历史
+```
+
+### AI 智能分析
+
+```http
+# 客流统计
+GET    /api/v1/ai/stats/passenger?cameraId=&startTime=&endTime=         # 客流历史统计
+GET    /api/v1/ai/stats/passenger/realtime/{cameraId}                    # 实时客流数据（Redis）
+
+# 行为告警
+GET    /api/v1/ai/alerts/behavior?cameraId=&eventType=&status=           # 行为告警列表
+PUT    /api/v1/ai/alerts/behavior/{id}/status                            # 更新告警状态
+
+# 车牌记录
+GET    /api/v1/ai/vehicles/records?plateNumber=&cameraId=                # 车牌识别记录
+
+# 白名单管理
+GET    /api/v1/ai/vehicles/whitelist                                     # 白名单列表
+POST   /api/v1/ai/vehicles/whitelist                                     # 添加白名单
+PUT    /api/v1/ai/vehicles/whitelist/{id}                                # 更新白名单
+DELETE /api/v1/ai/vehicles/whitelist/{id}                                # 删除白名单
+
+# 文件存储（MinIO）
+POST   /api/v1/files/upload?prefix=                                      # 上传文件到MinIO
+GET    /api/v1/files/download?objectName=                                 # 下载文件
+GET    /api/v1/files/presigned?objectName=&expiryMinutes=                # 获取预签名URL
+DELETE /api/v1/files?objectName=                                         # 删除文件
 ```
 
 ### 批量导入

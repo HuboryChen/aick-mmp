@@ -271,6 +271,24 @@ services:
 #      retries: 3
 #      start_period: 30s
 
+  # MinIO Object Storage (AI snapshots)
+  minio:
+    image: minio/minio:latest
+    container_name: aick-mmp-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_DEFAULT_BUCKETS: ai-snapshots
+    volumes:
+      - minio-data:/data
+    networks:
+      - aick-network
+
   # AI Analysis Service
   ai-service:
     build:
@@ -318,3 +336,4 @@ volumes:
   central-2-data:
   edge-node-1-data:
   edge-node-2-data:
+  minio-data:
