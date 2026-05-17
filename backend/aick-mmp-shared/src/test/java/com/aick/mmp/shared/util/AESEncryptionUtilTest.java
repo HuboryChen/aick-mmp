@@ -16,7 +16,7 @@ class AESEncryptionUtilTest {
     @BeforeEach
     void setUp() {
         // Use a 32-byte key for AES-256
-        encryptionUtil = new AESEncryptionUtil("0123456789abcdef0123456789abcdef");
+        encryptionUtil = new AESEncryptionUtil("0123456789abcdef0123456789abcdef", "CAMERA-KEY-0123456789abcdef012345");
     }
 
     @Test
@@ -117,7 +117,7 @@ class AESEncryptionUtilTest {
     @Test
     @DisplayName("Should handle short key (padding)")
     void testShortKey() {
-        AESEncryptionUtil shortKeyUtil = new AESEncryptionUtil("shortkey");
+        AESEncryptionUtil shortKeyUtil = new AESEncryptionUtil("shortkey", "camera-short-key");
         String originalText = "Test message";
 
         String encrypted = shortKeyUtil.encrypt(originalText);
@@ -145,5 +145,69 @@ class AESEncryptionUtilTest {
         String decrypted = encryptionUtil.decrypt(encrypted);
 
         assertEquals(whitespaceText, decrypted);
+    }
+
+    // ========== Camera Password Encryption Tests ==========
+
+    @Test
+    @DisplayName("Should encrypt and decrypt camera password correctly")
+    void testEncryptDecryptCameraPassword() {
+        String originalPassword = "MyCameraPassword123!";
+
+        String encrypted = encryptionUtil.encryptCameraPassword(originalPassword);
+        String decrypted = encryptionUtil.decryptCameraPassword(encrypted);
+
+        assertNotEquals(originalPassword, encrypted);
+        assertEquals(originalPassword, decrypted);
+    }
+
+    @Test
+    @DisplayName("Should produce different ciphertext for same camera password (random IV)")
+    void testCameraPasswordDeterministicDifferentCiphertext() {
+        String password = "SameCameraPassword";
+
+        String encrypted1 = encryptionUtil.encryptCameraPassword(password);
+        String encrypted2 = encryptionUtil.encryptCameraPassword(password);
+
+        assertNotEquals(encrypted1, encrypted2);
+
+        assertEquals(password, encryptionUtil.decryptCameraPassword(encrypted1));
+        assertEquals(password, encryptionUtil.decryptCameraPassword(encrypted2));
+    }
+
+    @Test
+    @DisplayName("Should return null for null and empty for empty camera password")
+    void testCameraPasswordNullAndEmpty() {
+        assertNull(encryptionUtil.encryptCameraPassword(null));
+        assertEquals("", encryptionUtil.encryptCameraPassword(""));
+
+        assertNull(encryptionUtil.decryptCameraPassword(null));
+        assertEquals("", encryptionUtil.decryptCameraPassword(""));
+    }
+
+    @Test
+    @DisplayName("Should enforce key isolation between camera and main encryption")
+    void testCameraEncryptionKeyIsolatedFromMainKey() {
+        String originalText = "Sensitive camera password";
+
+        String mainEncrypted = encryptionUtil.encrypt(originalText);
+        String cameraEncrypted = encryptionUtil.encryptCameraPassword(originalText);
+
+        assertEquals(originalText, encryptionUtil.decrypt(mainEncrypted));
+        assertEquals(originalText, encryptionUtil.decryptCameraPassword(cameraEncrypted));
+
+        assertThrows(RuntimeException.class, () -> encryptionUtil.decryptCameraPassword(mainEncrypted));
+        assertThrows(RuntimeException.class, () -> encryptionUtil.decrypt(cameraEncrypted));
+    }
+
+    @Test
+    @DisplayName("Should handle long camera password (500 chars)")
+    void testCameraPasswordLongText() {
+        String longPassword = "A".repeat(500);
+
+        String encrypted = encryptionUtil.encryptCameraPassword(longPassword);
+        String decrypted = encryptionUtil.decryptCameraPassword(encrypted);
+
+        assertEquals(longPassword, decrypted);
     }
 }
