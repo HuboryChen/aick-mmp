@@ -38,4 +38,12 @@ Thumbs.db
 *.temp
 *.swp
 *.swo
+*.bak
 *~
+
+# Claude Code settings
+.claude/
+.superpowers/
+
+# MinIO and build artifacts
+pjmp-success.txt
