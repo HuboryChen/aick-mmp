@@ -190,9 +190,10 @@
 }
 
 /* ========== 抽屉动画时长覆盖 ========== */
+/* !important required to override Ant Design's inline transition style */
 .video-wall-settings-drawer .ant-drawer-content-wrapper {
-  transition: all 0.3s ease-out !important;
+  transition: transform 0.3s ease-out !important;
 }
 .video-wall-settings-drawer .ant-drawer-content-wrapper-out {
-  transition: all 0.2s ease-in !important;
+  transition: transform 0.2s ease-in !important;
 }
