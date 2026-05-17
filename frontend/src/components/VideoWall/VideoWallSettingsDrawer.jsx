@@ -210,27 +210,6 @@ const VideoWallSettingsDrawer = ({
         </div>
       }
     >
-      {/* 预设管理区域 */}
-      <div className="drawer-section">
-        <PresetSelector
-          presets={presets}
-          builtInPresets={builtInPresets}
-          activePresetId={activePresetId}
-          isBuiltInPreset={isBuiltInPreset}
-          canEditPreset={canEditPreset}
-          canDeletePreset={canDeletePreset}
-          onSelect={handleSelectPreset}
-          onCreate={handleCreatePreset}
-          onEdit={handleUpdatePreset}
-          onDelete={handleDeletePreset}
-          onSetDefault={handleSetDefault}
-          onReorder={reorderPresets}
-          loading={isLoading}
-        />
-      </div>
-
-      <Divider />
-
       {/* 布局设置区域 */}
       <div className="drawer-section">
         <LayoutSelector
@@ -248,6 +227,27 @@ const VideoWallSettingsDrawer = ({
           bitrate={localBitrate}
           onQualityChange={handleQualityChange}
           onBitrateChange={handleBitrateChange}
+        />
+      </div>
+
+      <Divider />
+
+      {/* 预设管理区域 */}
+      <div className="drawer-section">
+        <PresetSelector
+          presets={presets}
+          builtInPresets={builtInPresets}
+          activePresetId={activePresetId}
+          isBuiltInPreset={isBuiltInPreset}
+          canEditPreset={canEditPreset}
+          canDeletePreset={canDeletePreset}
+          onSelect={handleSelectPreset}
+          onCreate={handleCreatePreset}
+          onEdit={handleUpdatePreset}
+          onDelete={handleDeletePreset}
+          onSetDefault={handleSetDefault}
+          onReorder={reorderPresets}
+          loading={isLoading}
         />
       </div>
 
