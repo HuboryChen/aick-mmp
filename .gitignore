@@ -7,9 +7,14 @@ node_modules
 .qoder/
 
 # Backend compiled files
+*/target/
+*/build/
+*/out/
 backend/target/
 backend/build/
 backend/out/
+backend/aick-mmp-central/target/
+backend/aick-mmp-edge/target/
 backend/*.jar
 backend/*.war
 backend/*.ear
