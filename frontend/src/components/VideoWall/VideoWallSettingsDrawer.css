@@ -13,6 +13,24 @@
   margin-bottom: 8px;
 }
 
+/* 加载骨架屏 */
+.drawer-loading-skeleton {
+  padding: 16px;
+}
+
+.drawer-loading-skeleton .ant-skeleton {
+  margin-bottom: 20px;
+}
+
+.drawer-loading-skeleton .ant-skeleton:last-child {
+  margin-bottom: 0;
+}
+
+/* 错误提示横幅 */
+.drawer-error-banner {
+  margin-bottom: 16px;
+}
+
 /* 抽屉底部 */
 .drawer-footer {
   display: flex;

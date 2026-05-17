@@ -6,7 +6,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Drawer, Button, Divider, Space, message } from 'antd';
+import { Drawer, Button, Divider, Space, Skeleton, Alert, message } from 'antd';
 import { SettingOutlined, ReloadOutlined, CheckOutlined } from '@ant-design/icons';
 import LayoutSelector from './LayoutSelector';
 import QualitySelector from './QualitySelector';
@@ -31,6 +31,9 @@ const VideoWallSettingsDrawer = ({
   builtInPresets,
   activePresetId,
   isLoading,
+  isLoaded,
+  error,
+  reload,
   saveConfigImmediately,
   applyPreset,
   createPreset,
@@ -210,65 +213,92 @@ const VideoWallSettingsDrawer = ({
         </div>
       }
     >
-      {/* 布局设置区域 */}
-      <div className="drawer-section">
-        <LayoutSelector
-          value={localLayout}
-          onChange={handleLayoutChange}
-        />
-      </div>
-
-      <Divider />
-
-      {/* 画质设置区域 */}
-      <div className="drawer-section">
-        <QualitySelector
-          quality={localQuality}
-          bitrate={localBitrate}
-          onQualityChange={handleQualityChange}
-          onBitrateChange={handleBitrateChange}
-        />
-      </div>
-
-      <Divider />
-
-      {/* 预设管理区域 */}
-      <div className="drawer-section">
-        <PresetSelector
-          presets={presets}
-          builtInPresets={builtInPresets}
-          activePresetId={activePresetId}
-          isBuiltInPreset={isBuiltInPreset}
-          canEditPreset={canEditPreset}
-          canDeletePreset={canDeletePreset}
-          onSelect={handleSelectPreset}
-          onCreate={handleCreatePreset}
-          onEdit={handleUpdatePreset}
-          onDelete={handleDeletePreset}
-          onSetDefault={handleSetDefault}
-          onReorder={reorderPresets}
-          loading={isLoading}
-        />
-      </div>
-
-      {/* 当前设置预览 */}
-      <div className="settings-preview">
-        <div className="preview-title">当前设置预览</div>
-        <div className="preview-content">
-          <div className="preview-item">
-            <span className="preview-label">布局:</span>
-            <span className="preview-value">{localLayout}宫格</span>
-          </div>
-          <div className="preview-item">
-            <span className="preview-label">画质:</span>
-            <span className="preview-value">{localQuality}</span>
-          </div>
-          <div className="preview-item">
-            <span className="preview-label">码率:</span>
-            <span className="preview-value">{localBitrate} kbps</span>
-          </div>
+      {/* 错误提示横幅 */}
+      {error && (
+        <div className="drawer-error-banner">
+          <Alert
+            type="error"
+            showIcon
+            message={error}
+            action={
+              <Button size="small" danger onClick={reload}>
+                重试
+              </Button>
+            }
+          />
         </div>
-      </div>
+      )}
+
+      {/* 初始加载骨架屏 */}
+      {isLoading && !isLoaded ? (
+        <div className="drawer-loading-skeleton">
+          <Skeleton active paragraph={{ rows: 1 }} title={{ width: '60%' }} style={{ marginBottom: 16 }} />
+          <Skeleton active paragraph={{ rows: 2 }} title={{ width: '40%' }} style={{ marginBottom: 16 }} />
+          <Skeleton active paragraph={{ rows: 3 }} title={{ width: '50%' }} />
+        </div>
+      ) : (
+        <>
+          {/* 布局设置区域 */}
+          <div className="drawer-section">
+            <LayoutSelector
+              value={localLayout}
+              onChange={handleLayoutChange}
+            />
+          </div>
+
+          <Divider />
+
+          {/* 画质设置区域 */}
+          <div className="drawer-section">
+            <QualitySelector
+              quality={localQuality}
+              bitrate={localBitrate}
+              onQualityChange={handleQualityChange}
+              onBitrateChange={handleBitrateChange}
+            />
+          </div>
+
+          <Divider />
+
+          {/* 预设管理区域 */}
+          <div className="drawer-section">
+            <PresetSelector
+              presets={presets}
+              builtInPresets={builtInPresets}
+              activePresetId={activePresetId}
+              isBuiltInPreset={isBuiltInPreset}
+              canEditPreset={canEditPreset}
+              canDeletePreset={canDeletePreset}
+              onSelect={handleSelectPreset}
+              onCreate={handleCreatePreset}
+              onEdit={handleUpdatePreset}
+              onDelete={handleDeletePreset}
+              onSetDefault={handleSetDefault}
+              onReorder={reorderPresets}
+              loading={isLoading}
+            />
+          </div>
+
+          {/* 当前设置预览 */}
+          <div className="settings-preview">
+            <div className="preview-title">当前设置预览</div>
+            <div className="preview-content">
+              <div className="preview-item">
+                <span className="preview-label">布局:</span>
+                <span className="preview-value">{localLayout}宫格</span>
+              </div>
+              <div className="preview-item">
+                <span className="preview-label">画质:</span>
+                <span className="preview-value">{localQuality}</span>
+              </div>
+              <div className="preview-item">
+                <span className="preview-label">码率:</span>
+                <span className="preview-value">{localBitrate} kbps</span>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </Drawer>
   );
 };
