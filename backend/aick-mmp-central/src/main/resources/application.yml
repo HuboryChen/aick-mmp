@@ -8,6 +8,11 @@ server:
     enabled: true
 
 spring:
+  flyway:
+    locations:
+      - classpath:db/migration
+      - classpath:com/aick/mmp/central/migration
+
   application:
     name: mmp-central-server
 
