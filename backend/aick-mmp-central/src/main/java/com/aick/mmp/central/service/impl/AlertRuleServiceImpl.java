@@ -11,6 +11,7 @@ import com.aick.mmp.central.service.AlertRuleService;
 import com.aick.mmp.shared.exception.ServiceException;
 import com.aick.mmp.shared.model.AlertCondition;
 import com.aick.mmp.shared.model.AlertRule;
+import com.aick.mmp.shared.model.AlertRecord;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -347,8 +348,9 @@ public class AlertRuleServiceImpl implements AlertRuleService {
             // 删除现有条件
             alertConditionRepository.deleteByRuleId(rule.getId());
 
-            // 添加新条件
-            for (AlertCondition condition : request.getConditions()) {
+            // 添加新条件 - convert DTO to entity
+            for (AlertRuleRequest.AlertConditionDTO conditionDTO : request.getConditions()) {
+                AlertCondition condition = convertToCondition(conditionDTO);
                 addCondition(rule.getId(), condition);
             }
         }
@@ -413,7 +415,24 @@ public class AlertRuleServiceImpl implements AlertRuleService {
     @Override
     public LocalDateTime getLastTriggeredTime(Long ruleId) {
         return alertRecordRepository.findTopByRuleIdOrderByAlertTimeDesc(ruleId)
-                .map(AlertRecord::getAlertTime)
+                .map(record -> record.getAlertTime())
                 .orElse(null);
+    }
+
+    private AlertCondition convertToCondition(AlertRuleRequest.AlertConditionDTO dto) {
+        AlertCondition condition = new AlertCondition();
+        condition.setId(dto.getId());
+        condition.setConditionName(dto.getConditionName());
+        condition.setConditionType(AlertCondition.ConditionType.valueOf(dto.getConditionType()));
+        condition.setMetricName(dto.getMetricName());
+        condition.setOperator(AlertCondition.ComparisonOperator.valueOf(dto.getOperator()));
+        condition.setThresholdValue(dto.getThresholdValue());
+        condition.setStringValue(dto.getStringValue());
+        condition.setLogicType(AlertCondition.LogicType.valueOf(dto.getLogicType()));
+        condition.setParentConditionId(dto.getParentConditionId());
+        condition.setSortOrder(dto.getSortOrder());
+        condition.setDurationSeconds(dto.getDurationSeconds());
+        condition.setIsEnabled(dto.getIsEnabled());
+        return condition;
     }
 }

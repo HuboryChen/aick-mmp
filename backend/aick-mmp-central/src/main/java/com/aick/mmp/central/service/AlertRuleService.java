@@ -36,6 +36,11 @@ public interface AlertRuleService {
     AlertRuleDTO updateAlertRule(Long id, AlertRuleDTO request);
 
     /**
+     * 更新告警规则（Request版本）
+     */
+    AlertRule updateRule(Long id, AlertRuleRequest request);
+
+    /**
      * 删除告警规则（级联删除条件和通知配置）
      */
     void deleteRule(Long id);

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 告警记录数据访问层
@@ -79,6 +80,16 @@ public interface AlertRecordRepository extends JpaRepository<AlertRecord, Long>,
      * 查找指定规则且指定时间后的告警记录
      */
     List<AlertRecord> findByRuleIdAndAlertTimeAfter(Long ruleId, LocalDateTime time);
+
+    /**
+     * 统计指定规则且指定时间后的告警记录数量
+     */
+    long countByRuleIdAndAlertTimeAfter(Long ruleId, LocalDateTime time);
+
+    /**
+     * 查找指定规则的最后告警记录
+     */
+    Optional<AlertRecord> findTopByRuleIdOrderByAlertTimeDesc(Long ruleId);
 
     /**
      * 查找指定时间范围内的未处理告警

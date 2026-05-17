@@ -1,6 +1,7 @@
 package com.aick.mmp.central.controller;
 
 import com.aick.mmp.central.dto.AlertRuleRequest;
+import com.aick.mmp.central.dto.AlertRuleDTO;
 import com.aick.mmp.central.service.AlertRuleService;
 import com.aick.mmp.central.service.AlertRecordService;
 import com.aick.mmp.central.service.AlertRuleTemplateService;
