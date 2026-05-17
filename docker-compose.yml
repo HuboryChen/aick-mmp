@@ -73,7 +73,7 @@ services:
       - "10000-10200:10000-10200/udp"
     volumes:
       - janus-data:/var/lib/janus
-      - ./janus/janus.cfg:/usr/local/etc/janus/janus.jcfg
+      - ./media-servers/janus/janus.cfg:/usr/local/etc/janus/janus.jcfg
     environment:
       - JANUS_LOG_LEVEL=5
     networks:
@@ -89,7 +89,7 @@ services:
       - "1935:1935"
       - "8888:8888"
     volumes:
-      - ./mediamtx.yml:/mediamtx.yml
+      - ./media-servers/mediamtx/mediamtx.yml:/mediamtx.yml
     networks:
       - aick-network
 

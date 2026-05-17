@@ -476,8 +476,11 @@ aick-mmp/
 ├── nginx/                   # 负载均衡配置
 │   ├── central-lb.conf      # 中央负载均衡
 │   └── edge-lb.conf         # 边缘负载均衡
-├── janus/                   # Janus配置
-│   └── janus.cfg            # Janus服务配置
+├── media-servers/           # 媒体服务器配置
+│   ├── janus/               # Janus配置
+│   │   └── janus.cfg        # Janus服务配置
+│   └── mediamtx/            # MediaMTX配置
+│       └── mediamtx.yml     # MediaMTX服务配置
 ├── docker-compose.yml       # 容器编排配置
 ├── ARCHITECTURE.md          # 架构设计文档
 ├── IMPLEMENTATION_PLAN.md   # 实施计划

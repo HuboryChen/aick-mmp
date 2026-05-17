@@ -5,6 +5,11 @@ node_modules
 .idea/
 .vscode/
 .qoder/
+.codebuddy/
+.cursor/
+.trae/
+.venv/
+.claude/
 
 # Backend compiled files
 */target/
