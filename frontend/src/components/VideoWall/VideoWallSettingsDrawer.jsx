@@ -117,7 +117,7 @@ const VideoWallSettingsDrawer = ({
         bitrate: localBitrate,
       });
       message.success('预设创建成功');
-    } catch (error) {
+    } catch (err) {
       message.error('预设创建失败');
     }
   };
@@ -127,7 +127,7 @@ const VideoWallSettingsDrawer = ({
     try {
       await updatePreset(presetId, updates);
       message.success('预设更新成功');
-    } catch (error) {
+    } catch (err) {
       message.error('预设更新失败');
     }
   };
@@ -137,7 +137,7 @@ const VideoWallSettingsDrawer = ({
     try {
       await deletePreset(preset.id);
       message.success('预设已删除');
-    } catch (error) {
+    } catch (err) {
       message.error('预设删除失败');
     }
   };
@@ -147,7 +147,7 @@ const VideoWallSettingsDrawer = ({
     try {
       await setAsDefaultPreset(preset.id);
       message.success('已设为默认预设');
-    } catch (error) {
+    } catch (err) {
       message.error('设置默认失败');
     }
   };
@@ -192,6 +192,7 @@ const VideoWallSettingsDrawer = ({
           <Button
             icon={<ReloadOutlined />}
             onClick={handleReset}
+            disabled={isLoading && !isLoaded}
           >
             重置
           </Button>
@@ -206,6 +207,7 @@ const VideoWallSettingsDrawer = ({
               type="primary"
               icon={<CheckOutlined />}
               onClick={handleDone}
+              disabled={isLoading && !isLoaded}
             >
               完成
             </Button>
