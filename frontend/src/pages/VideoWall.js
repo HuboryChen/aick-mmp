@@ -55,9 +55,9 @@ const VideoControlButton = ({ icon, tooltip, onClick }) => (
 
 const VideoWall = () => {
   const { config, isLoaded, setLayout, setQuality, setBitrate: setConfigBitrate, setSelectedCameras,
-          presets, builtInPresets, activePresetId, isLoading, saveConfigImmediately,
+          presets, builtInPresets, activePresetId, isLoading, error, saveConfigImmediately,
           applyPreset, createPreset, updatePreset, deletePreset, setAsDefaultPreset, reorderPresets,
-          resetToDefaults, canEditPreset, canDeletePreset, isBuiltInPreset } = useVideoWallSettings();
+          resetToDefaults, canEditPreset, canDeletePreset, isBuiltInPreset, reload } = useVideoWallSettings();
   const [layout, setLayoutState] = useState(config.layout || '4');
   const [cameras, setCameras] = useState([]);
   const [selectedCamerasState, setSelectedCamerasState] = useState([]);
@@ -542,6 +542,9 @@ const VideoWall = () => {
         builtInPresets={builtInPresets}
         activePresetId={activePresetId}
         isLoading={isLoading}
+        isLoaded={isLoaded}
+        error={error}
+        reload={reload}
         saveConfigImmediately={saveConfigImmediately}
         applyPreset={applyPreset}
         createPreset={createPreset}
